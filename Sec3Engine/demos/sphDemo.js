@@ -150,7 +150,9 @@ var myRender = function() {
 };
 
 var main = function( canvasId, messageId ){
+
     initGL( canvasId, messageId );
+    var extDrawBuffers = gl.getExtension( "WEBGL_draw_buffers");
     SEC3.renderer.init(); // TEMP
     SEC3.postFx.init(); // TEMP
 	setupScene();
