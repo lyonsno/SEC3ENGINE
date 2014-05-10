@@ -1,6 +1,5 @@
-#extension GL_EXT_draw_buffers: require
-
 precision highp float;
+#extension GL_EXT_draw_buffers: require
 //--------------------------------------------------------------VARIABLES:
 
 uniform sampler2D u_sampler;
