@@ -41,14 +41,14 @@
     function init( gl, width, height, numAttatchments, inputTextures ){
         numAttatchments = numAttatchments || 4;
 
-    	gl.getExtension( "OES_texture_float" );
-    	gl.getExtension( "OES_texture_float_linear" );
+    	var textureFloat = gl.getExtension( "OES_texture_float" );
+    	var linearFloat = gl.getExtension( "OES_texture_float_linear" );
     	var extDrawBuffers = gl.getExtension( "WEBGL_draw_buffers");
     	var extDepthTex = gl.getExtension( "WEBGL_depth_texture" );
 
         resolution = [width, height];
 
-    	if( !extDepthTex || !extDrawBuffers ){
+    	if( !extDepthTex || !extDrawBuffers || !textureFloat || !linearFloat ){
     		alert("Depth texture extension unavailable on your browser!");
     		return false;
     	}

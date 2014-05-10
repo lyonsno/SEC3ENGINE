@@ -75,7 +75,7 @@ var getSphereMovementVector = function( screenX, screenY ) {
 };
 
 var moveSphere = function(screenX, screenY){
-    var scale = 0.2;
+    var scale = 0.2 / sph.stepsPerFrame;
     screenX /= SEC3.canvas.width * 0.5;
     screenY /= SEC3.canvas.height * 0.5;
     screenX -= 1.0;
@@ -114,7 +114,7 @@ var myRender = function() {
 
     if( ! sph.paused ) {
         // bucketStats.begin();
-        // sph.updateBuckets();
+        sph.updateBuckets();
         // bucketStats.end();
     
         // positionStats.begin();
@@ -299,10 +299,10 @@ var initParticleSystem = function() {
 
 	sph = new SEC3.SPH(specsFast);
 
-    sph.addDetectorProjector( [12.0, 12.0, 12.0], 45.0, -45.0, 256, 30.0 );     
-    sph.addDetectorProjector( [-2.0, -12.0, -2.0], -135.0, 45.0, 256, 30.0 );         
-    sph.addDetectorProjector( [-2.0, 12.0, 12.0], -45.0, -45.0, 256, 30.0 );         
-    sph.addDetectorProjector( [12.0, -12.0, -2.0], 135.0, 45.0, 256, 30.0 );         
+    sph.addDetectorProjector( [12.0, 12.0, 12.0], 45.0, -45.0, 512, 30.0 );     
+    sph.addDetectorProjector( [-2.0, -12.0, -2.0], -135.0, 45.0, 512, 30.0 );         
+    sph.addDetectorProjector( [-2.0, 12.0, 12.0], -45.0, -45.0, 512, 30.0 );         
+    sph.addDetectorProjector( [12.0, -12.0, -2.0], 135.0, 45.0, 512, 30.0 );         
 
 
     // TODO:
@@ -396,7 +396,7 @@ var loadObjects = function() {
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/bigSphere/sphere.obj', 'Sec3Engine/models/bigSphere/sphere.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');
     
         
     //Register a callback function that extracts vertex and normal 
