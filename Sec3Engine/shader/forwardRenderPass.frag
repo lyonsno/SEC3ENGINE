@@ -1,6 +1,7 @@
-#extension GL_EXT_draw_buffers: require
-
+// #version 200 es
 precision highp float;
+// #extension WEBGL_draw_buffers: require
+
 
 //--------------------------------------------------------------VARIABLES:
 

@@ -1,7 +1,7 @@
-
-
-#extension GL_EXT_draw_buffers : require
 precision highp float;
+
+
+// #extension WEBGL_draw_buffers : require
 
 uniform sampler2D uParticleVelocities;
 uniform sampler2D uParticlePositions; 

@@ -1,4 +1,4 @@
-#extension GL_EXT_draw_buffers : require
+#extension WEBGL_draw_buffers : require
 precision highp float;
 
 #define TEXTURE_SIZE_NAIVE 256

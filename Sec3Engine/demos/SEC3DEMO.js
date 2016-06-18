@@ -150,7 +150,7 @@ var myRender = function() {
     particleSystem.updateShadowMap(scene.getLight(demo.selectedLight));
     // particleSystem.update();
     // forwardRenderPass(scene, demo.selectedLight );
-    SEC3.renderer.fillGPass( SEC3.gBuffer );
+    SEC3.renderer.fillGPass( SEC3.gBuffer, camera );
     SEC3.renderer.deferredRender( scene, SEC3.gBuffer, SEC3.gBuffer );
     
     if ( demo.secondPass === "bufferRenderProg") {

@@ -98,9 +98,9 @@ SEC3.renderer.init = function () {
     SEC3.registerAsyncObj( gl, debugGProg );
     SEC3.renderer.debugGProg = debugGProg;
 
-    //SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
 
-    //SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+    SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
 
 };
 

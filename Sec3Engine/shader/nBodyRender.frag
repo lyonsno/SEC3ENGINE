@@ -1,4 +1,7 @@
+// #version 200 es
+// #extension WEBGL_draw_buffers : enable
 precision highp float;
+
 
 const float EPSILON = 0.0005;
 const vec3 color = vec3(0.4, 0.8, 1.0);

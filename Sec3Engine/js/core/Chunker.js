@@ -155,8 +155,8 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 	numSamples = Math.max(numSamples, 1.0);
 //------------------------------------------------------DECLARATIONS:
 	var declarations = "" +
-		"#extension GL_EXT_draw_buffers: require \n" +
 		"precision highp float; \n" +
+		"#extension GL_EXT_draw_buffers: require \n" +
 
 		"const float AMBIENT_INTENSITY = 0.03; \n" +
 		"const float LIGHT_INTENSITY = 100.0; \n" +

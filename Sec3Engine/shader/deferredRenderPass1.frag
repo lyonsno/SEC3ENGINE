@@ -1,5 +1,6 @@
+// #version 200 es
 precision highp float;
-#extension GL_EXT_draw_buffers: require
+// #extension WEBGL_draw_buffers: require
 //--------------------------------------------------------------VARIABLES:
 
 uniform sampler2D u_sampler;

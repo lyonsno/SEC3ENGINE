@@ -1,6 +1,6 @@
+#extension WEBGL_draw_buffers : require
 
 
-#extension GL_EXT_draw_buffers : require
 precision highp float;
 
 const float deltaT = 0.00027777777;
