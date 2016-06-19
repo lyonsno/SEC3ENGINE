@@ -18,7 +18,7 @@ SEC3.createShaderProgram = function(){
 
 	function loadShaderFile( gl, fileName, shader, prefix ){
         prefix = prefix || "";
-        prefix = "#version 100\n#extension GL_EXT_draw_buffers: enable\nprecision highp float; \n" + prefix;
+        prefix = "#extension GL_EXT_draw_buffers: enable\nprecision highp float; \n" + prefix;
 		var request = new XMLHttpRequest();
 
 	    //Register a callback function 

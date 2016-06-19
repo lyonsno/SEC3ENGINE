@@ -98,9 +98,9 @@ SEC3.renderer.init = function () {
     SEC3.registerAsyncObj( gl, debugGProg );
     SEC3.renderer.debugGProg = debugGProg;
 
-    SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    // SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
 
-    SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+    // SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
 
 };
 
@@ -118,6 +118,7 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
      //update the model-view matrix
     var mvpMat = mat4.create();
+    alert(camera.getViewTransform())
     mat4.multiply( mvpMat, camera.getViewTransform(), demo.sphereModelMatrix );
     mat4.multiply( mvpMat, camera.getProjectionMat(), mvpMat );
     var mvMat = mat4.create();
