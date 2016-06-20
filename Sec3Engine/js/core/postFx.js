@@ -51,6 +51,23 @@ SEC3.postFx.init = function() {
     SEC3.registerAsyncObj( gl, backBufferWriteProg );
 	SEC3.postFx.backBufferWriteProg = backBufferWriteProg;
 
+//---------------------------------------------------FINAL PASS:
+    var depthBackBufferWriteProg = SEC3.createShaderProgram();
+    depthBackBufferWriteProg.loadShader( gl, 
+                               "Sec3Engine/shader/finalPass.vert", 
+                               "Sec3Engine/shader/writeDepth.frag" );
+
+    depthBackBufferWriteProg.addCallback( function(){
+        //query the locations of shader parameters
+        depthBackBufferWriteProg.aVertexPosLoc = gl.getAttribLocation( depthBackBufferWriteProg.ref(), "a_pos" );
+        depthBackBufferWriteProg.aVertexTexcoordLoc = gl.getAttribLocation( depthBackBufferWriteProg.ref(), "a_texcoord" );
+        
+        depthBackBufferWriteProg.uFinalImageLoc = gl.getUniformLocation( depthBackBufferWriteProg.ref(), "u_colorTex");
+
+    } );
+    SEC3.registerAsyncObj( gl, depthBackBufferWriteProg );
+    SEC3.postFx.depthBackBufferWriteProg = depthBackBufferWriteProg;
+
 //----------------------------------------------------BLUR PASS:
     var blurGaussianProg = SEC3.createShaderProgram();
     blurGaussianProg.loadShader( gl, 
@@ -210,6 +227,36 @@ SEC3.postFx.finalPass = function(texture, framebuffer){
 
     gl.disable( gl.DEPTH_TEST );
     SEC3.renderer.bindQuadBuffers(SEC3.postFx.backBufferWriteProg);
+
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
+
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+};
+
+/*
+ * write linearized contents of texture to BackBuffer, or other framebuffer if specified
+ */
+SEC3.postFx.writeDepth = function(texture, framebuffer){
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
+    gl.useProgram(SEC3.postFx.depthBackBufferWriteProg.ref());
+    
+    if(framebuffer) {
+        gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight());
+    }
+    else {
+        gl.viewport( 0, 0, SEC3.canvas.width, SEC3.canvas.height );
+    }
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(SEC3.postFx.depthBackBufferWriteProg.uFinalImageLoc, 0);
+
+    gl.disable( gl.DEPTH_TEST );
+    SEC3.renderer.bindQuadBuffers(SEC3.postFx.depthBackBufferWriteProg);
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
