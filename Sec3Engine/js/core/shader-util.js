@@ -55,7 +55,7 @@ SEC3.createShaderProgram = function(){
 	function initShaderProgram( gl, v_shader_src, f_shader_src ){
 		program = createProgram( gl, v_shader_src, f_shader_src );
 		if( !program ){
-			console.log( 'Failed to create shader program' );
+			console.log( 'Failed to create shader program');
 			return false;
 		}
 

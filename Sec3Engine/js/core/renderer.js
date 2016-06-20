@@ -116,9 +116,9 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     gl.enable( gl.DEPTH_TEST );
     gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+
      //update the model-view matrix
     var mvpMat = mat4.create();
-    alert(camera.getViewTransform())
     mat4.multiply( mvpMat, camera.getViewTransform(), demo.sphereModelMatrix );
     mat4.multiply( mvpMat, camera.getProjectionMat(), mvpMat );
     var mvMat = mat4.create();
@@ -126,6 +126,7 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, mvMat);
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
     gl.uniform3fv( SEC3.renderer.fillGProg.uCPosLoc, camera.getPosition() );
+
     SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
     framebuffer.unbind(gl);
     gl.useProgram( null );

@@ -92,57 +92,46 @@ var moveSphere = function(screenX, screenY){
 };
 
 var myRender = function() {
+    // handle mouse interaction
     if(interactor.button == 0 && interactor.dragging && ! interactor.alt ) {
-        moveSphere( interactor.x * 0.5, interactor.y * 0.5 );
+        moveSphere( interactor.x * 0.8, interactor.y * 0.8 );
     }
-    //TODO getter / only call once
-    // if( ! demo.gBufferFilled ) {
-        gl.enable( gl.CULL_FACE );
-        gl.cullFace( gl.BACK );
-        gl.frontFace( gl.CCW );
-        for( var i = 0; i < sph.projectors.length; i++ ){
-            SEC3.renderer.fillGPass( sph.projectors[i].gBuffer, sph.projectors[i] );
-        }
-        demo.gBufferFilled = true;
-        // sph.updateBuckets();
-        // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
-        // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
-    // }
+
+    // populate collision buffers
+    gl.enable( gl.CULL_FACE );
+    gl.cullFace( gl.BACK );
+    gl.frontFace( gl.CCW );
+    for( var i = 0; i < sph.projectors.length; i++ ){
+        SEC3.renderer.fillGPass( sph.projectors[i].gBuffer, sph.projectors[i] );
+    }
+    demo.gBufferFilled = true;
+
+    // fill g buffer with all scene geometry besides particles
     SEC3.renderer.fillGPass( scene.gBuffer, scene.getCamera() );
-    // // SEC3.renderer.deferredRender( scene, scene.gBuffer );
+
+    // render all scene geometry besides particles
     SEC3.postFx.finalPass( scene.gBuffer.texture(2));
 
+    // step simulation
     if( ! sph.paused ) {
-        // bucketStats.begin();
         sph.updateBuckets();
-        // bucketStats.end();
-    
-        // positionStats.begin();
         sph.updatePositions();
-        // positionStats.end();
-
         sph.updateBuckets();
-
-        // densityStats.begin();
         sph.updateDensity();
-        // densityStats.end();
-
-        // velocityStats.begin();
         sph.updateVelocities();
-        // velocityStats.end();
     }
 
+    // show debug views if requested
     if( sph.viewGrid ) {
         SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
     }
     else if( sph.viewDepth ) {
         SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(0) );
     }
-
     else if( sph.viewNormals ) {
         SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(1));
-         // SEC3.postFx.finalPass( demo.blurFBO.texture(0) );
     }
+    //otherwise draw particles
     else {
         sph.draw( scene, null );
     }
@@ -375,9 +364,9 @@ var initUI = function() {
     gui.add(sph, 'surfaceTension', 0.0, 2.0).name('Surface Tension');
     gui.add(sph, 'restDensity', 0.001, 1.0).name('Rest Density');
     
-    // gui.add(sph, 'showDepth' ).name('Show collision depth');
-    // gui.add(sph, 'showNormals' ).name('Show collision normal');
-    // gui.add(sph, 'showNextProjector').name('Show next projector');
+    gui.add(sph, 'showDepth' ).name('Show depth');
+    gui.add(sph, 'showNormals' ).name('Show normal');
+    gui.add(sph, 'showNextProjector').name('Show next projector');
     gui.add(sph, 'particleSize', 0.1, 2.0 ).name('Size');
     gui.add(sph, 'showGrid' ).name('Show voxel grid');
     gui.add(sph, 'pause' ).name('Pause');
@@ -393,7 +382,8 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader(scene);
     
     
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
+    // objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
+    objLoader.loadFromFile(gl, 'Sec3Engine/models/quads/sphereQuad.obj', 'Sec3Engine/models/quads/sphereQuad.mtl')
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
     objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');

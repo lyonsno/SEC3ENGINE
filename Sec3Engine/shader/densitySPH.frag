@@ -1,4 +1,3 @@
-#extension WEBGL_draw_buffers : require
 precision highp float;
 
 //--------------------------------------------------------GLOBALS:

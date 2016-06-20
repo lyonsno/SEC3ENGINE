@@ -137,12 +137,12 @@ SEC3.SPH.prototype = {
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[0] );
 		this.ext.drawElementsInstancedANGLE(gl.TRIANGLES, model_indexVBOs[0].numIndex, gl.UNSIGNED_SHORT, 0, this.numParticles);
         // gl.drawElements( gl.TRIANGLES, model_indexVBOs[i].numIndex, gl.UNSIGNED_SHORT, 0 );
+		// gl.drawArrays( gl.POINTS, 0, 1000);//this.numParticles );
 
         gl.bindBuffer( gl.ARRAY_BUFFER, null );
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
 
 
-		// gl.drawArrays( gl.POINTS, 0, this.numParticles );
 		
 		
 		
