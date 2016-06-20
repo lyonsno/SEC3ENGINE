@@ -14,7 +14,8 @@ SEC3.CameraInteractor = function(camera,canvas){
     this.camera = camera;
     this.canvas = canvas;
   
-    
+    this.mouseCallback = false;
+
     this.dragging = false;
     this.x = 0;
     this.y = 0;
@@ -54,8 +55,8 @@ SEC3.CameraInteractor = function(camera,canvas){
 
 
 
-		if (this.button == 0 && this.alt == false ) { 
-			moveSphere( interactor.x * 0.5, interactor.y * 0.5 );
+		if (this.mouseCallback && this.button == 0 && this.alt == false ) { 
+			this.mouseCallback( interactor.x, interactor.y);
 		}
 		else {
 				this.rotate(dx,dy);
@@ -109,6 +110,10 @@ SEC3.CameraInteractor = function(camera,canvas){
 		}
 	};
 
+	this.setMouseCallback = function(func){
+		this.mouseCallback = func
+	};
+
 	this.update = function(self){
 	   
 
@@ -156,5 +161,6 @@ SEC3.CameraInteractor = function(camera,canvas){
 	};
 
    this.update(this);
+   return this
 
 };

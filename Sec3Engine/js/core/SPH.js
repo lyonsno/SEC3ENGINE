@@ -14,6 +14,11 @@ SEC3.SPH = function(specs) {
 	
 	this.indexFBO = {};
 	this.densityFBO = {};
+	this.model_VBOs = [];
+	this.model_indexVBOs = [];
+	this.model_vertexVBOs = [];
+	this.model_texcoordVBOs = [];
+	this.model_normalVBOs = [];
 
 	this.viewDepth = false;
 	this.viewNormals = false;
@@ -47,8 +52,10 @@ SEC3.SPH = function(specs) {
 	this.grid = {};
 
 	this.ext = gl.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
+	this.loadObjects();
 	this.initFBOs();
 	this.initShaders();
+
 
 	this.pause = function() {
 		this.paused = ! this.paused;
@@ -125,17 +132,17 @@ SEC3.SPH.prototype = {
 		// Bind the rest of the vertex attributes normally
 		//----------------DRAW MODEL:
 
-        gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[0] );
+        gl.bindBuffer( gl.ARRAY_BUFFER, this.model_vertexVBOs[0] );
         gl.vertexAttribPointer( this.renderProgram.aGeometryVertsLoc, 3, gl.FLOAT, false, 0, 0 );
         gl.enableVertexAttribArray( this.renderProgram.aGeometryVertsLoc );
 
          //Bind vertex normal buffer
-        gl.bindBuffer( gl.ARRAY_BUFFER, model_normalVBOs[0] );
+        gl.bindBuffer( gl.ARRAY_BUFFER, this.model_normalVBOs[0] );
         gl.vertexAttribPointer( this.renderProgram.aGeometryNormalsLoc, 3, gl.FLOAT, false, 0, 0 );
         gl.enableVertexAttribArray( this.renderProgram.aGeometryNormalsLoc );
 
-        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[0] );
-		this.ext.drawElementsInstancedANGLE(gl.TRIANGLES, model_indexVBOs[0].numIndex, gl.UNSIGNED_SHORT, 0, this.numParticles);
+        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.model_indexVBOs[0] );
+		this.ext.drawElementsInstancedANGLE(gl.TRIANGLES, this.model_indexVBOs[0].numIndex, gl.UNSIGNED_SHORT, 0, this.numParticles);
         // gl.drawElements( gl.TRIANGLES, model_indexVBOs[i].numIndex, gl.UNSIGNED_SHORT, 0 );
 		// gl.drawArrays( gl.POINTS, 0, 1000);//this.numParticles );
 
@@ -143,9 +150,61 @@ SEC3.SPH.prototype = {
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
 
 
+	},
 		
-		
-		
+		/*
+	 * Loads objects from obj files into the model_VBOs
+	 */
+	loadObjects : function () {
+	    //Load a OBJ model from file
+	    var objLoader = SEC3.createOBJLoader(scene);
+	    sph = this
+	    
+	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
+	    objLoader.loadFromFile(gl, 'Sec3Engine/models/quads/sphereQuad.obj', 'Sec3Engine/models/quads/sphereQuad.mtl')
+	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
+	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
+	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');
+	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/bigSphere/sphere.obj', 'Sec3Engine/models/bigSphere/sphere.mtl');
+	    
+	        
+	    //Register a callback function that extracts vertex and normal 
+	    //and put it in our VBO
+	    objLoader.addCallback( function(){
+	         
+	        //There might be multiple geometry groups in the model
+	        for (var i = 0; i < objLoader.numGroups(); ++i) {
+
+	            sph.model_vertexVBOs[i] = gl.createBuffer();
+	            gl.bindBuffer( gl.ARRAY_BUFFER, sph.model_vertexVBOs[i] );
+	            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( objLoader.vertices(i) ), gl.STATIC_DRAW );
+
+	            sph.model_normalVBOs[i] = gl.createBuffer();
+	            gl.bindBuffer( gl.ARRAY_BUFFER, sph.model_normalVBOs[i] );
+	            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( objLoader.normals(i) ), gl.STATIC_DRAW ); 
+
+	            sph.model_texcoordVBOs[i] = gl.createBuffer();
+	            gl.bindBuffer( gl.ARRAY_BUFFER, sph.model_texcoordVBOs[i] );
+	            gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( objLoader.texcoords(i) ), gl.STATIC_DRAW ); 
+	            gl.bindBuffer( gl.ARRAY_BUFFER, null );
+
+	            if (objLoader.texture(i)) {
+
+	                sph.model_texcoordVBOs[i].texture = objLoader.texture(i);    
+	            }
+	            
+
+	            sph.model_indexVBOs[i] = gl.createBuffer();
+	            gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, sph.model_indexVBOs[i] );
+	            gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array( objLoader.indices(i) ), gl.STATIC_DRAW );
+	            sph.model_indexVBOs[i].numIndex = objLoader.indices(i).length;
+
+	            gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
+	        }
+	        
+	    });
+	    SEC3.registerAsyncObj( gl, objLoader );    
+
 	},
 
 	updateBuckets : function () {

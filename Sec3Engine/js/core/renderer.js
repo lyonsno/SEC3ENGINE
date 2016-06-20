@@ -98,9 +98,9 @@ SEC3.renderer.init = function () {
     SEC3.registerAsyncObj( gl, debugGProg );
     SEC3.renderer.debugGProg = debugGProg;
 
-    // SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
 
-    // SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+    SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
 
 };
 
@@ -119,13 +119,13 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
 
      //update the model-view matrix
     var mvpMat = mat4.create();
-    mat4.multiply( mvpMat, camera.getViewTransform(), demo.sphereModelMatrix );
+    mat4.multiply( mvpMat, camera.getViewTransform(), demo.modelMatrix );
     mat4.multiply( mvpMat, camera.getProjectionMat(), mvpMat );
+    
     var mvMat = mat4.create();
-    mat4.multiply( mvMat, camera.getViewTransform(), demo.sphereModelMatrix );
+    mat4.multiply( mvMat, camera.getViewTransform(), demo.modelMatrix );
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, mvMat);
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
-    gl.uniform3fv( SEC3.renderer.fillGProg.uCPosLoc, camera.getPosition() );
 
     SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
     framebuffer.unbind(gl);
@@ -176,12 +176,14 @@ SEC3.renderer.drawShadowMap = function(light, index){
     // gl.cullFace(gl.BACK);
     gl.useProgram(SEC3.renderer.buildShadowMapProg.ref());
     var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, pMat, lMat );
+    mat4.multiply(mlpMat, lMat, demo.modelMatrix);
+    mat4.multiply(mlpMat, pMat, mlpMat);
+    // mat4.multiply( mlpMat, pMat, lMat );
     gl.uniformMatrix4fv( SEC3.renderer.buildShadowMapProg.uMLPLoc, false, mlpMat );
 
     //----------------DRAW MODEL:
 
-    for ( var i = 1; i < model_vertexVBOs.length; ++i ){
+    for ( var i = 0; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
         gl.vertexAttribPointer( SEC3.renderer.buildShadowMapProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
@@ -216,7 +218,7 @@ SEC3.renderer.drawModel = function (program, textureOffset, camera) {
 
     //------------------DRAW MODEL:
     
-    for ( var i = 1; i < model_vertexVBOs.length; ++i ){
+    for ( var i = 0; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
         gl.vertexAttribPointer( program.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
@@ -291,7 +293,7 @@ SEC3.renderer.deferredRender = function(scene, gBuffer) {
 
     for( var i = 0; i < scene.getNumLights(); i++ ){
 
-        // SEC3.renderer.deferredRenderSpotLight( scene.getLight(i), 4 );
+        SEC3.renderer.deferredRenderSpotLight( scene.getLight(i), 4 );
     }
     gl.disable( gl.BLEND );
   

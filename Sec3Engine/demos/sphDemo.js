@@ -6,10 +6,11 @@ var demo = (function () {
     demo.selectedLight = 0;
     demo.MAX_LIGHTS = 8;
     demo.MAX_CASCADES = 6;
-    demo.AMBIENT_INTENSITY = 0.03;
+    demo.AMBIENT_INTENSITY = 0.1;
 
     demo.texToDisplay = 2;
     demo.secondPass;
+    demo.secondPass = "buildShadowMapProg";
 
     demo.nearSlope = -6.6;
     demo.nearIntercept = 1.39;
@@ -27,12 +28,12 @@ var demo = (function () {
     demo.FAR_CASCADE_SIZE = 256;
     demo.NEAR_CASCADE_SIZE = 1024;
     demo.spherePosition = vec3.fromValues(2.6,2,2);
-    demo.sphereModelMatrix = mat4.create();
-    mat4.translate( demo.sphereModelMatrix, demo.sphereModelMatrix, demo.spherePosition);
+    demo.modelMatrix = mat4.create();
+    mat4.translate( demo.modelMatrix, demo.modelMatrix, demo.spherePosition);
     demo.resetSphere = function() {
         demo.spherePosition = vec3.fromValues(0,0,1);
-        demo.sphereModelMatrix = mat4.create();
-        mat4.translate( demo.sphereModelMatrix, demo.sphereModelMatrix, demo.spherePosition);
+        demo.modelMatrix = mat4.create();
+        mat4.translate( demo.modelMatrix, demo.modelMatrix, demo.spherePosition);
     }
     return demo;
 
@@ -86,12 +87,13 @@ var moveSphere = function(screenX, screenY){
     var y = scale * xyz[1];
     var z = scale * xyz[2];
 
-    mat4.translate( demo.sphereModelMatrix, demo.sphereModelMatrix, vec3.fromValues( x, y, z ));
+    mat4.translate( demo.modelMatrix, demo.modelMatrix, vec3.fromValues( x, y, z ));
     demo.spherePosition = vec3.add( demo.spherePosition, demo.spherePosition, vec3.fromValues( x, y, z ));
 
 };
 
 var myRender = function() {
+    demo.secondPass == "buildShadowMapProg"
     // handle mouse interaction
     if(interactor.button == 0 && interactor.dragging && ! interactor.alt ) {
         moveSphere( interactor.x * 0.8, interactor.y * 0.8 );
@@ -104,13 +106,26 @@ var myRender = function() {
     for( var i = 0; i < sph.projectors.length; i++ ){
         SEC3.renderer.fillGPass( sph.projectors[i].gBuffer, sph.projectors[i] );
     }
-    demo.gBufferFilled = true;
+
+    SEC3.renderer.updateShadowMaps(scene);
 
     // fill g buffer with all scene geometry besides particles
     SEC3.renderer.fillGPass( scene.gBuffer, scene.getCamera() );
 
+    // deffered render from scene's gBuffer
+    SEC3.renderer.deferredRender( scene, scene.gBuffer );
+
     // render all scene geometry besides particles
-    SEC3.postFx.finalPass( scene.gBuffer.texture(2));
+
+    if ( demo.secondPass === "buildShadowMapProg") {
+        // SEC3.postFx.finalPass(light.cascadeFramebuffers[demo.cascadeToDisplay].depthTexture());
+        SEC3.postFx.finalPass( lightFBO.texture(0));
+        // SEC3.postFx.writeDepth(scene.lights[0].cascadeFramebuffers[0].depthTexture());
+    }
+    else {
+        // SEC3.postFx.finalPass( scene.gBuffer.texture(2) );
+        SEC3.postFx.finalPass( finalFBO.texture(0) );
+    }
 
     // step simulation
     if( ! sph.paused ) {
@@ -123,7 +138,7 @@ var myRender = function() {
 
     // show debug views if requested
     if( sph.viewGrid ) {
-        SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
+        SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); 
     }
     else if( sph.viewDepth ) {
         SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(0) );
@@ -142,9 +157,9 @@ var main = function( canvasId, messageId ){
 
     initGL( canvasId, messageId );
     var extDrawBuffers = gl.getExtension( "WEBGL_draw_buffers");
+	setupScene();  
     SEC3.renderer.init(); // TEMP
     SEC3.postFx.init(); // TEMP
-	setupScene();
 	SEC3.render = myRender;
 	SEC3.renderLoop = myRenderLoop;
 	SEC3.run(gl);
@@ -168,10 +183,10 @@ var setupScene = function(){
 
 var initLight = function() {
     var nextLight = new SEC3.SpotLight();
-    nextLight.goHome ( [ 0, 6, 0] ); 
-    nextLight.setAzimuth( 90.0 );    
-    nextLight.setElevation( -60.0 );
-    nextLight.setPerspective( 30, 1, 0.2, 10.0 );
+    nextLight.goHome ( [ 5.0, 5.0, 8.0] ); 
+    // nextLight.setAzimuth( 45.0 );    
+    nextLight.setElevation( -30.0 );
+    nextLight.setPerspective( 60, 1, 0.2, 20.0 );
     nextLight.setupCascades( 1, 512, gl, scene );
     scene.addLight(nextLight);
 }
@@ -184,10 +199,12 @@ var initCamera = function() {
     // camera.setAzimuth( -30.0 );
     camera.setElevation( -30.0 );
     interactor = new SEC3.CameraInteractor( camera, canvas );
+    interactor.setMouseCallback(moveSphere)
     // interactor.update();
     camera.setPerspective( 60, canvas.width / canvas.height, 0.1, 30.0 );
     scene.setCamera(camera);
     SEC3.canvas = canvas;
+
 
 }
 
@@ -243,13 +260,19 @@ var initFBOs = function() {
         console.log( "lightFBO initialization failed.");
         return;
     }
+
+    splattingFBO = SEC3.createFBO();
+    if (! splattingFBO.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "splattingFBO initialization failed.");
+        return;
+    }
 }
 
 var initGL = function(canvasId, messageId) {
     //get WebGL context
     var canvas = document.getElementById( canvasId );
-    canvas.width = document.body.clientWidth * 0.5;
-    canvas.height = document.body.clientHeight * 0.5;
+    canvas.width = document.body.clientWidth * 1.0;
+    canvas.height = document.body.clientHeight * 1.0;
     SEC3.canvas = canvas;
     var msg = document.getElementById( messageId );
     gl = SEC3.getWebGLContext( canvas, msg );
@@ -353,11 +376,11 @@ var loadObjects = function() {
     
     
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile(gl, 'Sec3Engine/models/quads/sphereQuad.obj', 'Sec3Engine/models/quads/sphereQuad.mtl')
+    // objLoader.loadFromFile(gl, 'Sec3Engine/models/quads/sphereQuad.obj', 'Sec3Engine/models/quads/sphereQuad.mtl')
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');
-        // objLoader.loadFromFile( gl, 'Sec3Engine/models/bigSphere/sphere.obj', 'Sec3Engine/models/bigSphere/sphere.mtl');
+    // objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/bigSphere/sphere.obj', 'Sec3Engine/models/bigSphere/sphere.mtl');
     
         
     //Register a callback function that extracts vertex and normal 

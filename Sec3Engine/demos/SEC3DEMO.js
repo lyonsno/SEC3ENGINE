@@ -55,6 +55,16 @@ var demo = (function () {
     demo.SHADOWMAP_SIZE = 1024.0;
     demo.FAR_CASCADE_SIZE = 256;
     demo.NEAR_CASCADE_SIZE = 1024;
+
+    demo.spherePosition = vec3.fromValues(2.6,2,2);
+    demo.modelMatrix = mat4.create();
+    mat4.translate( demo.modelMatrix, demo.modelMatrix, demo.spherePosition);
+    demo.resetSphere = function() {
+        demo.spherePosition = vec3.fromValues(0,0,1);
+        demo.modelMatrix = mat4.create();
+        mat4.translate( demo.modelMatrix, demo.modelMatrix, demo.spherePosition);
+    }
+
     return demo;
 
 })();
@@ -150,7 +160,7 @@ var myRender = function() {
     particleSystem.updateShadowMap(scene.getLight(demo.selectedLight));
     // particleSystem.update();
     // forwardRenderPass(scene, demo.selectedLight );
-    SEC3.renderer.fillGPass( SEC3.gBuffer );
+    SEC3.renderer.fillGPass( SEC3.gBuffer, scene.getCamera() );
     SEC3.renderer.deferredRender( scene, SEC3.gBuffer, SEC3.gBuffer );
     
     if ( demo.secondPass === "bufferRenderProg") {
@@ -539,14 +549,14 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 10000,
+        maxParticles : 500000,
         emitters : [],
-        gravityModifier : -800.0,
+        gravityModifier : -8000.0,
         RGBA : [0.0, 0.2, 0.9, 0.311],
-        damping : 1.01,
+        damping : 1.08,
         type : "nBody",
-        activeBodies : 2,
-        particleSize : 1.0,
+        activeBodies : 3,
+        particleSize : 0.4,
         luminence : 40.0,
         scatterMultiply : 2.0,
         shadowMultiply : 0.1,
