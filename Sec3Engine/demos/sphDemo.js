@@ -320,36 +320,6 @@ var initUI = function() {
     stats.domElement.style.top = '0px';
     document.body.appendChild( stats.domElement );
 
-    // bucketStats = new Stats();
-    // positionStats = new Stats();
-    // densityStats = new Stats();
-    // velocityStats = new Stats();
-
-    // bucketStats.setMode(1);
-    // positionStats.setMode(1);
-    // densityStats.setMode(1);
-    // velocityStats.setMode(1);
-
-    // bucketStats.domElement.style.position = 'absolute';
-    // bucketStats.domElement.style.left = '0px';
-    // bucketStats.domElement.style.top = '100px';
-    // document.body.appendChild( bucketStats.domElement );
-
-    // positionStats.domElement.style.position = 'absolute';
-    // positionStats.domElement.style.left = '0px';
-    // positionStats.domElement.style.top = '200px';
-    // document.body.appendChild( positionStats.domElement );
-
-    // densityStats.domElement.style.position = 'absolute';
-    // densityStats.domElement.style.left = '0px';
-    // densityStats.domElement.style.top = '300px';
-    // document.body.appendChild( densityStats.domElement );
-
-    // velocityStats.domElement.style.position = 'absolute';
-    // velocityStats.domElement.style.left = '0px';
-    // velocityStats.domElement.style.top = '400px';
-    // document.body.appendChild( velocityStats.domElement );
-
     var gui = new dat.GUI();
     gui.add(sph, 'stepsPerFrame', 1, 10).name('Time Step');
     gui.add(sph, 'maxVelocity', 1, 20).name('Max Velocity');
