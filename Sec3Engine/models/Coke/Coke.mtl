@@ -1,0 +1,28 @@
+# 
+# Wavefront material file
+# Converted by the DEEP Exploration  3.5.7.1088
+# Right Hemisphere, LTD
+# http://www.righthemisphere.com/
+# 
+
+newmtl material01
+Ka 0.878431 0.878431 0.878431
+Kd 0.878431 0.878431 0.878431
+Ks 1 1 1
+illum 2
+Ns 362.039
+map_Kd Coke.jpg
+
+newmtl material02
+Ka 1 1 1
+Kd 1 1 1
+Ks 1 1 1
+illum 2
+Ns 362.039
+
+newmtl material03
+Ka 0 0 0
+Kd 0 0 0
+Ks 1 1 1
+illum 2
+Ns 362.039
