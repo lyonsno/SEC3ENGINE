@@ -1,7 +1,0 @@
-1k or lower shadow map with no dof - 60 fps
-1k shadow map with dof - 30 fps
-2k shadow map with no dof - 30 fps
-2k map with dof - 30fps
-
-Questions:
-	v_Depth is quite buggy, especially on the floor; improves with tesselation but not solved
