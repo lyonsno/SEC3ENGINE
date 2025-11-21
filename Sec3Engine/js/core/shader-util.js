@@ -16,10 +16,22 @@ SEC3.createShaderProgram = function(){
     var program = null;              //shader program
     var callbackFunArray = [];
 
-	function loadShaderFile( gl, fileName, shader, prefix ){
+        function loadShaderFile( gl, fileName, shader, prefix ){
+        var drawBuffersExt = gl.getExtension("WEBGL_draw_buffers");
         prefix = prefix || "";
-        prefix = "#extension GL_EXT_draw_buffers: enable\nprecision highp float; \n" + prefix;
-		var request = new XMLHttpRequest();
+        var basePrefix = "precision highp float; \n";
+
+        if (drawBuffersExt) {
+            // Only ask GLSL to enable the extension when it is available; some
+            // browsers (notably mobile Safari) disable it when GPU capability is
+            // reduced, and requesting it regardless can cause vague shader link
+            // failures instead of falling back to the supported feature set.
+            prefix = "#extension GL_EXT_draw_buffers: enable\n" + basePrefix + prefix;
+        } else {
+            prefix = basePrefix + prefix;
+        }
+
+                var request = new XMLHttpRequest();
 
 	    //Register a callback function 
 	    // 
