@@ -279,10 +279,11 @@ function startDemo() {
     SEC3ENGINE.run(gl);
 }
 
-function webGLStart() {
+    function webGLStart() {
 
-    canvas = document.getElementById("glcanvas");
-    initGL(canvas);
+        canvas = document.getElementById("glcanvas");
+        SEC3.canvas = canvas;
+        initGL(canvas);
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
     camera.goHome([0.0, 0.0, 10.0]);
