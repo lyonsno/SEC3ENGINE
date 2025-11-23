@@ -27,6 +27,34 @@ python scripts/playwright_capture.py --url http://localhost:8000/index.html --ou
 
 When running inside this workspace, you can call the `browser_container.run_playwright_script` helper with the same script to render the live server and return the screenshot artifact.
 
+Example (inside this workspace):
+
+```python
+from browser_container import run_playwright_script
+
+run_playwright_script(
+    ports_to_forward=[8000],
+    script="""
+import asyncio
+from playwright.async_api import async_playwright
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True, args=[\"--no-sandbox\", \"--disable-dev-shm-usage\"])
+        context = await browser.new_context(viewport={"width": 1280, "height": 720})
+        page = await context.new_page()
+        await page.goto('http://127.0.0.1:8000/index.html')
+        await page.wait_for_timeout(1000)
+        await page.screenshot(path='artifacts/example.png', full_page=True)
+        await browser.close()
+
+asyncio.run(main())
+""",
+)
+```
+
+> Note: The Python `playwright` package is not preinstalled in this environment and external network access is restricted, so `pip install playwright` may fail. If you need to run the helper locally, install the dependency where network access is available.
+
 ## 3. Troubleshooting
 - If you change the server port, pass the matching URL to `--url`.
 - The Playwright script launches Chromium headless by default with container-friendly flags (`--no-sandbox` and `--disable-dev-shm-usage`). If you need a different viewport, use `--width` and `--height`.
