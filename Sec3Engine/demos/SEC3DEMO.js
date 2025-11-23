@@ -513,6 +513,19 @@ var setupScene = function(canvasId, messageId ) {
         console.log("Bad GL Context!");
         return;
     }
+
+    // The renderer relies on multiple render targets, which require the
+    // WEBGL_draw_buffers extension in WebGL 1. Prefer to fail fast when the
+    // extension is unavailable (for example, when the browser has reduced GPU
+    // support enabled) rather than letting the pipeline fail later with vague
+    // WebGL errors.
+    if (!gl.getExtension("WEBGL_draw_buffers")) {
+        console.warn("WEBGL_draw_buffers extension unavailable; rendering will fail.");
+        if (msg) {
+            msg.innerText = "WEBGL_draw_buffers is required for SEC3DEMO.";
+        }
+        return;
+    }
     
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.viewportWidth = canvas.width;
