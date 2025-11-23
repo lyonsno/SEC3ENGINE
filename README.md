@@ -23,11 +23,16 @@ python scripts/playwright_capture.py --url http://localhost:8000/index.html --ou
 
 - `--url` is the page to open.
 - `--out` is where the screenshot is saved (directories will be created if they do not exist).
-- `--wait` adds an optional delay (in milliseconds) after navigation to let assets finish loading.
+- `--wait` adds an optional delay (in milliseconds) after navigation to let assets finish loading (defaults to `0`).
 
 When running inside this workspace, you can call the `browser_container.run_playwright_script` helper with the same script to render the live server and return the screenshot artifact.
 
 ## 3. Troubleshooting
 - If you change the server port, pass the matching URL to `--url`.
-- The Playwright script launches Chromium headless by default. If you need a different viewport, use `--width` and `--height`.
-- For local (non-workspace) usage, ensure the `playwright` Python package and browsers are installed (`pip install playwright && playwright install`).
+- The Playwright script launches Chromium headless by default with container-friendly flags (`--no-sandbox` and `--disable-dev-shm-usage`). If you need a different viewport, use `--width` and `--height`.
+- For local (non-workspace) usage, ensure the `playwright` Python package and browsers are installed:
+
+  ```bash
+  pip install playwright
+  playwright install
+  ```

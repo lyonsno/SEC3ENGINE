@@ -19,15 +19,23 @@ async def capture(url: str, out_path: Path, wait_ms: int, width: int, height: in
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        page = await browser.new_page(viewport={"width": width, "height": height})
-        await page.goto(url)
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        )
+        context = await browser.new_context(viewport={"width": width, "height": height})
+        page = await context.new_page()
 
-        if wait_ms > 0:
-            await page.wait_for_timeout(wait_ms)
+        try:
+            await page.goto(url)
 
-        await page.screenshot(path=str(out_path), full_page=True)
-        await browser.close()
+            if wait_ms > 0:
+                await page.wait_for_timeout(wait_ms)
+
+            await page.screenshot(path=str(out_path), full_page=True)
+        finally:
+            await context.close()
+            await browser.close()
 
 
 async def main():

@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+artifacts/
+.venv/
+.idea/
+.vscode/
+*.DS_Store
+node_modules/
