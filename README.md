@@ -1,33 +1,44 @@
-# SEC3ENGINE Playwright Access
+# SEC3ENGINE
 
-This repository contains static web demos under the project root and within the `Sec3Engine/` folder. To visually verify changes from within this environment, you can serve the files locally and capture screenshots with Playwright.
+A collection of WebGL demos and a lightweight engine prototype for rendering experiments. The repository contains the core engine under `Sec3Engine/`, a few HTML entry points, and an older "NoEngines" demo for comparison.
 
-## 1. Serve the project locally
-From the repository root, start a simple HTTP server on port 8000:
+## Project layout
+- **`index.html`**: Loads the Sec3Engine core and runs the `SEC3DEMO` scene (water/particle-style rendering) inside a canvas.
+- **`particleDemo.html`**: Alternate entry that exercises the particle system.
+- **`Sec3Engine/`**: Engine sources (`js/core`, `js/math`, `js/3party`), shaders, and an additional `sec3index.html` demo page.
+- **`NoEngines/`**: Legacy demo without the engine abstraction. Open `NoEngines/index.html` to compare behaviors.
+
+## Running locally
+Serve the repo root so the demos can load their assets via HTTP. The simplest option uses Python:
 
 ```bash
 python -m http.server 8000
 ```
 
-- The root `index.html` and `particleDemo.html` will be available at `http://localhost:8000/`.
-- The Sec3Engine assets can be accessed under `http://localhost:8000/Sec3Engine/` (for example, `http://localhost:8000/Sec3Engine/index.html`).
+Then open one of the pages in your browser:
 
-Keep this server running in its own terminal while you capture screenshots.
+- Main demo: `http://localhost:8000/index.html`
+- Particle demo: `http://localhost:8000/particleDemo.html`
+- Engine sample page: `http://localhost:8000/Sec3Engine/sec3index.html`
+- Legacy comparison: `http://localhost:8000/NoEngines/index.html`
 
-## 2. Capture a screenshot with Playwright
-Use the provided helper script to open a page and grab a screenshot. The script is designed to work with the built-in Playwright environment available through the `browser_container` tool, but it can also run anywhere Playwright is installed.
+> If you change ports, update the URLs accordingly.
+
+## Capturing screenshots with Playwright
+You can automate visual checks using the included helper script. It works both locally (with Playwright installed) and inside this workspace via the built-in `browser_container` runtime.
 
 ```bash
 python scripts/playwright_capture.py --url http://localhost:8000/index.html --out artifacts/home.png --wait 1500
 ```
 
-- `--url` is the page to open.
-- `--out` is where the screenshot is saved (directories will be created if they do not exist).
-- `--wait` adds an optional delay (in milliseconds) after navigation to let assets finish loading (defaults to `0`).
+Flags:
+- `--url`: page to open.
+- `--out`: where to save the screenshot (directories are created automatically).
+- `--wait`: optional delay in milliseconds after navigation (defaults to `0`).
+- `--width` / `--height`: viewport size (defaults to `1280x720`).
 
-When running inside this workspace, you can call the `browser_container.run_playwright_script` helper with the same script to render the live server and return the screenshot artifact.
-
-Example (inside this workspace):
+### Workspace usage
+If you are in the ChatGPT/Codex workspace, start the local server and call `browser_container.run_playwright_script` to reuse the Playwright runtime without installing anything:
 
 ```python
 from browser_container import run_playwright_script
@@ -53,14 +64,8 @@ asyncio.run(main())
 )
 ```
 
-> Note: The Python `playwright` package is not preinstalled in this environment and external network access is restricted, so `pip install playwright` may fail. If you need to run the helper locally, install the dependency where network access is available.
+> Note: The Python `playwright` package is optional and may not install in restricted environments. Install it (and run `playwright install`) on a machine with network access if you want to run the helper locally.
 
-## 3. Troubleshooting
-- If you change the server port, pass the matching URL to `--url`.
-- The Playwright script launches Chromium headless by default with container-friendly flags (`--no-sandbox` and `--disable-dev-shm-usage`). If you need a different viewport, use `--width` and `--height`.
-- For local (non-workspace) usage, ensure the `playwright` Python package and browsers are installed:
-
-  ```bash
-  pip install playwright
-  playwright install
-  ```
+## Troubleshooting
+- Use a modern browser with WebGL enabled; if assets fail to load, confirm you’re serving over HTTP rather than `file://`.
+- For Playwright captures, ensure the server is running and the forwarded port matches the URL passed to the script.
