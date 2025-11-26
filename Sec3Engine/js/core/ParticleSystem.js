@@ -43,18 +43,39 @@ SEC3.createParticleSystem = function(specs) {
 	
 	var renderProgram;
 	var stepProgram;
-	var interactor = {};
-	interactor.attractor = [ -13.0, 6.0, 1.0, 1.0 ];
-	var self = {};
+        var interactor = {};
+        interactor.attractor = [ -13.0, 6.0, 1.0, 1.0 ];
+        var self = {};
+
+        // Helpers to safely access optional scene and camera globals used by legacy demos.
+        var getActiveCamera = function() {
+                if (typeof scene !== "undefined" && scene.getCamera) {
+                        return scene.getCamera();
+                }
+                if (typeof camera !== "undefined") {
+                        return camera;
+                }
+                return null;
+        };
+
+        var getActiveLight = function() {
+                if (typeof scene !== "undefined" && scene.getLight && scene.getNumLights && scene.getNumLights() > 0) {
+                        return scene.getLight(0);
+                }
+                return null;
+        };
 
 //----------------------------------------------------------------METHODS:
 	
 
-	var update = function() {
+        var update = function() {
 
-	    stepParticles();
-	    updateShadowMap(scene.getLight(0));
-	};
+            stepParticles();
+            var activeLight = getActiveLight();
+            if (activeLight) {
+                    updateShadowMap(activeLight);
+            }
+        };
 
 	var draw = function( light ) {
 		renderParticles( light );
@@ -96,11 +117,14 @@ SEC3.createParticleSystem = function(specs) {
 
 	    gl.vertexAttribPointer(stepProgram.aVertexPosition, 2, gl.FLOAT, false, 0, 0); 
 	    gl.enableVertexAttribArray(stepProgram.aVertexPosition);
-	    var center = vec3.clone(scene.getCamera().getPosition());
-	    var offset = vec3.clone(camera.normal);
-	    vec3.scale(offset, offset, -6.0);
-	    vec3.add(center, center, offset);
-	    gl.uniform4f(stepProgram.uAttractor, center[0], center[1], center[2], 0.4 );
+            var activeCamera = getActiveCamera();
+            if (activeCamera) {
+                    var center = vec3.clone(activeCamera.getPosition());
+                    var offset = vec3.clone(activeCamera.normal);
+                    vec3.scale(offset, offset, -6.0);
+                    vec3.add(center, center, offset);
+                    gl.uniform4f(stepProgram.uAttractor, center[0], center[1], center[2], 0.4 );
+            }
 
 	    gl.drawArrays(gl.TRIANGLES, 0, 6); 
 	}
@@ -108,9 +132,13 @@ SEC3.createParticleSystem = function(specs) {
 	/*
 	 * draws current scene into shadow map
 	 */
-	var updateShadowMap = function ( light ) {
+        var updateShadowMap = function ( light ) {
 
-		var fbo = light.cascadeFramebuffers[0];
+                if (!light || !light.cascadeFramebuffers || !light.cascadeFramebuffers[0]) {
+                        return;
+                }
+
+                var fbo = light.cascadeFramebuffers[0];
 		gl.colorMask(false,false,false,false);
 	    gl.useProgram(self.shadowProgram.ref());
 	    gl.viewport(0, 0, fbo.getWidth(), fbo.getHeight());
@@ -139,30 +167,49 @@ SEC3.createParticleSystem = function(specs) {
 	/*
 	 * Draws all particles in system
 	 */
-	var renderParticles = function ( light ) {
+        var renderParticles = function ( light ) {
+
+            light = light || getActiveLight();
+            if (!light || !light.cascadeFramebuffers || !light.cascadeFramebuffers[0]) {
+                    return;
+            }
 
 	    gl.useProgram(self.renderProgram.ref());
 	    gl.viewport(0, 0, SEC3.canvas.width, SEC3.canvas.height );
 
 		
-	    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition());
-	    gl.uniform3fv(renderProgram.uCPosLoc, scene.getCamera().getPosition());
+            if (light) {
+                    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition());
+            }
+            var activeCamera = getActiveCamera();
+            if (activeCamera) {
+                    gl.uniform3fv(renderProgram.uCPosLoc, activeCamera.getPosition());
+            }
 
-	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
-	    gl.uniform1i( renderProgram.uParticlePositions, 0);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
+            gl.uniform1i( renderProgram.uParticlePositions, 0);
 
-	    gl.activeTexture( gl.TEXTURE1 );
-	    gl.bindTexture( gl.TEXTURE_2D, SEC3.gBuffer.depthTexture() );
-	    gl.uniform1i( renderProgram.uGDepthLoc, 1 );
+            if (SEC3.gBuffer && SEC3.gBuffer.depthTexture) {
+                    gl.activeTexture( gl.TEXTURE1 );
+                    gl.bindTexture( gl.TEXTURE_2D, SEC3.gBuffer.depthTexture() );
+                    gl.uniform1i( renderProgram.uGDepthLoc, 1 );
+            }
 
-	    gl.activeTexture(gl.TEXTURE2);
-	    gl.bindTexture(gl.TEXTURE_2D, light.cascadeFramebuffers[0].depthTexture() );
-	    gl.uniform1i(renderProgram.uShadowMap, 2);
-	   	
-	   	gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, light.getMVP() );
-	    gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, scene.getCamera().getMVP());
-	    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition() );
+            if (light) {
+                    gl.activeTexture(gl.TEXTURE2);
+                    gl.bindTexture(gl.TEXTURE_2D, light.cascadeFramebuffers[0].depthTexture() );
+                    gl.uniform1i(renderProgram.uShadowMap, 2);
+
+                    gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, light.getMVP() );
+            }
+            var activeCamera = getActiveCamera();
+            if (activeCamera) {
+                    gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, activeCamera.getMVP());
+            }
+            if (light) {
+                    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition() );
+            }
 	    //bind the default frame buffer, disable depth testing and enable alpha blending
 	    finalFBO.bind(gl);
 
@@ -293,8 +340,14 @@ SEC3.createParticleSystem = function(specs) {
 			renderProgram.uShadowMultiply = gl.getUniformLocation(renderProgram.ref(), "uShadowMultiply");
 			renderProgram.uScale = gl.getUniformLocation(renderProgram.ref(), "uScale");
 	        gl.useProgram(renderProgram.ref());
-	        gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, scene.getLight(0).getMVP());
-    		gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, scene.getCamera().getMVP());
+                var activeLight = getActiveLight();
+                if (activeLight) {
+                        gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, activeLight.getMVP());
+                }
+                var activeCamera = getActiveCamera();
+                if (activeCamera) {
+                        gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, activeCamera.getMVP());
+                }
     		gl.uniform2fv( renderProgram.uScreenSizeLoc, vec2.fromValues(SEC3.canvas.width, SEC3.canvas.height ));
     		gl.uniform1f(renderProgram.uLuminence, self.luminence);	
    	        gl.uniform1f(renderProgram.uAlpha, self.RGBA[3]);
