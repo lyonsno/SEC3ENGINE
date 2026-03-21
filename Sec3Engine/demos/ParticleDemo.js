@@ -31,6 +31,8 @@ var pMatrix = mat4.create();
 //--------------------------------------------------------------FUNCTIONS:
 
 function drawScene() {
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    system.stepParticles();
     system.draw();
 }
 
@@ -266,7 +268,7 @@ function startDemo() {
     // READ IN JSON FROM FILE
     // Gen texture for spark particles
     spriteTex = new Texture();
-    spriteTex.setImage("Sec3Engine/textures/spark.png");
+    spriteTex.setImage(SEC3.resolveResourcePath("Sec3Engine/textures/spark.png"));
 
     // FEED SPECS INTO IT
     // interactor = SEC3ENGINE.ParticleInteractor(canvas);//SEC3ENGINE.CameraInteractor(camera, canvas);
@@ -282,9 +284,11 @@ function startDemo() {
 function webGLStart() {
 
     canvas = document.getElementById("glcanvas");
+    SEC3.canvas = canvas;
     initGL(canvas);
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
+    camera.setPerspective(60, canvas.width / canvas.height, 0.6, 30.0);
     camera.goHome([0.0, 0.0, 10.0]);
     
     interactor = SEC3ENGINE.ParticleInteractor(canvas);// SEC3ENGINE.cameraInteractor(camera, canvas);

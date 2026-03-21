@@ -5,6 +5,43 @@
 //SEC3 is a core function interface
 var SEC3 = SEC3 || {};
 
+SEC3.resolveResourcePath = SEC3.resolveResourcePath || function(resourcePath) {
+    "use strict"
+
+    if (!resourcePath || resourcePath.charAt(0) === "/" || /^(?:https?:)?\/\//.test(resourcePath)) {
+        return resourcePath;
+    }
+
+    var normalizedPath = resourcePath.replace(/^\.\//, "");
+    if (normalizedPath.indexOf("Sec3Engine/") === 0) {
+        normalizedPath = normalizedPath.substring("Sec3Engine/".length);
+    }
+
+    var assetRoot = null;
+    if (typeof window !== "undefined" && typeof window.SEC3_ASSET_ROOT === "string") {
+        assetRoot = window.SEC3_ASSET_ROOT;
+    }
+    else if (typeof SEC3_ASSET_ROOT === "string") {
+        assetRoot = SEC3_ASSET_ROOT;
+    }
+    else {
+        var pathname = "";
+        if (
+            typeof window !== "undefined" &&
+            window.location &&
+            typeof window.location.pathname === "string"
+        ) {
+            pathname = window.location.pathname;
+        }
+        assetRoot = pathname.indexOf("/Sec3Engine/") !== -1 ? "." : "Sec3Engine";
+    }
+
+    if (!assetRoot || assetRoot === ".") {
+        return "./" + normalizedPath;
+    }
+    return assetRoot.replace(/\/+$/, "") + "/" + normalizedPath;
+};
+
 //createShaderProgram returns an object representing a shader program
 //The shader sources are asynchronouosly retrieved
 //from the server when loadShader is called

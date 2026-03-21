@@ -7,6 +7,9 @@
 	<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 	<!-- glMatrix version 2.2.0 -->
 	<script type="text/javascript" src="/Sec3Engine/js/math/gl-matrix.js"></script>
+	<script src="Sec3Engine/js/core/SceneObject.js" type="text/javascript"></script>
+	<script src="Sec3Engine/js/core/projector.js" type="text/javascript"></script>
+	<script src="Sec3Engine/js/core/PerspProjector.js" type="text/javascript"></script>
 	<script src="Sec3Engine/js/core/ParticleSystem.js" type="text/javascript"></script>
 	<script src="Sec3Engine/js/core/shader-util.js" type ="text/javascript"></script>
 	<script src="Sec3Engine/js/core/webgl-util.js" type ="text/javascript"></script>
@@ -18,7 +21,14 @@
 	<script src="Sec3Engine/js/core/geometry.js" type ="text/javascript"></script>
 	<script src="/Sec3Engine/js/math/UI.js" type="text/javascript"></script>	
 	<script src="/Sec3Engine/js/math/math.js" type="text/javascript"></script>		
-	<script src="ParticleSystem/ParticleDemo.js" type="text/javascript"></script>
+	<script type="text/javascript">
+		// Legacy demos expect the engine API under the SEC3ENGINE name.
+		// Preserve any helpers attached to the old namespace, then expose the
+		// combined API under both names before loading the demo script.
+		SEC3ENGINE = Object.assign(SEC3, SEC3ENGINE || {});
+		SEC3 = SEC3ENGINE;
+	</script>
+	<script src="Sec3Engine/demos/ParticleDemo.js" type="text/javascript"></script>
 
 	</head>
 
@@ -29,6 +39,5 @@
 		Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
 	</canvas>
 </body>
-
 
 

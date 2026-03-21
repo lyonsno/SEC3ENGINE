@@ -15,8 +15,8 @@ SEC3.postFx.init = function() {
 	var blendAdditiveProg = SEC3.createShaderProgram();
 	//Load the shader source asynchronously
 	blendAdditiveProg.loadShader( gl, 
-	                     "Sec3Engine/shader/blendAdditive.vert", 
-	                     "Sec3Engine/shader/blendAdditive.frag" );
+	                     SEC3.resolveResourcePath("Sec3Engine/shader/blendAdditive.vert"), 
+	                     SEC3.resolveResourcePath("Sec3Engine/shader/blendAdditive.frag") );
 
 	blendAdditiveProg.addCallback( function() {
 	    gl.useProgram( blendAdditiveProg.ref() );
@@ -37,8 +37,8 @@ SEC3.postFx.init = function() {
 //---------------------------------------------------FINAL PASS:
     var backBufferWriteProg = SEC3.createShaderProgram();
     backBufferWriteProg.loadShader( gl, 
-                               "Sec3Engine/shader/finalPass.vert", 
-                               "Sec3Engine/shader/finalPass.frag" );
+                               SEC3.resolveResourcePath("Sec3Engine/shader/finalPass.vert"), 
+                               SEC3.resolveResourcePath("Sec3Engine/shader/finalPass.frag") );
 
     backBufferWriteProg.addCallback( function(){
         //query the locations of shader parameters
@@ -54,8 +54,8 @@ SEC3.postFx.init = function() {
 //---------------------------------------------------FINAL PASS:
     var depthBackBufferWriteProg = SEC3.createShaderProgram();
     depthBackBufferWriteProg.loadShader( gl, 
-                               "Sec3Engine/shader/finalPass.vert", 
-                               "Sec3Engine/shader/writeDepth.frag" );
+                               SEC3.resolveResourcePath("Sec3Engine/shader/finalPass.vert"), 
+                               SEC3.resolveResourcePath("Sec3Engine/shader/writeDepth.frag") );
 
     depthBackBufferWriteProg.addCallback( function(){
         //query the locations of shader parameters
@@ -71,8 +71,8 @@ SEC3.postFx.init = function() {
 //----------------------------------------------------BLUR PASS:
     var blurGaussianProg = SEC3.createShaderProgram();
     blurGaussianProg.loadShader( gl, 
-                         "Sec3Engine/shader/texture.vert", 
-                         "Sec3Engine/shader/gaussianBlur.frag" );
+                         SEC3.resolveResourcePath("Sec3Engine/shader/texture.vert"), 
+                         SEC3.resolveResourcePath("Sec3Engine/shader/gaussianBlur.frag") );
 
     blurGaussianProg.addCallback( function(){
         //query the locations of shader parameters
@@ -95,8 +95,8 @@ SEC3.postFx.init = function() {
 //-------------------------------------------------DOFDOWNSAMPLE PASS:  
     var dofDownsampleProg = SEC3.createShaderProgram();
     dofDownsampleProg.loadShader( gl, 
-                         "Sec3Engine/shader/finalPass.vert", 
-                         "Sec3Engine/shader/dofDownsample.frag" );
+                         SEC3.resolveResourcePath("Sec3Engine/shader/finalPass.vert"), 
+                         SEC3.resolveResourcePath("Sec3Engine/shader/dofDownsample.frag") );
 
     dofDownsampleProg.addCallback( function(){
         //query the locations of shader parameters
@@ -123,8 +123,8 @@ SEC3.postFx.init = function() {
 //-----------------------------------------------DOFCOMP PASS:
     var dofCompProg = SEC3.createShaderProgram();
     dofCompProg.loadShader( gl,
-                            "Sec3Engine/shader/finalPass.vert",
-                            "Sec3Engine/shader/dofComp.frag");
+                            SEC3.resolveResourcePath("Sec3Engine/shader/finalPass.vert"),
+                            SEC3.resolveResourcePath("Sec3Engine/shader/dofComp.frag"));
 
     dofCompProg.addCallback( function(){
 
@@ -147,8 +147,8 @@ SEC3.postFx.init = function() {
 //-----------------------------------------------DOFCALCCOC PASS:
     var dofCalcCocProg = SEC3.createShaderProgram();
     dofCalcCocProg.loadShader( gl,
-                               "Sec3Engine/shader/finalPass.vert",
-                               "Sec3Engine/shader/dofCalcCoc.frag");
+                               SEC3.resolveResourcePath("Sec3Engine/shader/finalPass.vert"),
+                               SEC3.resolveResourcePath("Sec3Engine/shader/dofCalcCoc.frag"));
 
     dofCalcCocProg.addCallback( function(){
 

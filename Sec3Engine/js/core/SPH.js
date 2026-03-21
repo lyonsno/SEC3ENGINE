@@ -161,7 +161,11 @@ SEC3.SPH.prototype = {
 	    sph = this
 	    
 	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-	    objLoader.loadFromFile(gl, 'Sec3Engine/models/quads/sphereQuad.obj', 'Sec3Engine/models/quads/sphereQuad.mtl')
+	    objLoader.loadFromFile(
+	    	gl,
+	    	SEC3.resolveResourcePath('Sec3Engine/models/quads/sphereQuad.obj'),
+	    	SEC3.resolveResourcePath('Sec3Engine/models/quads/sphereQuad.mtl')
+	    )
 	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
 	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
 	    // objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');
@@ -659,8 +663,8 @@ SEC3.SPH.prototype = {
 		//--------------------------------------------------UPDATE POSITIONS
 		var positionProgram = SEC3.createShaderProgram();
 		positionProgram.loadShader(gl,
-								 "Sec3Engine/shader/densitySPH.vert",
-								 "Sec3Engine/shader/positionSPH.frag");
+								 SEC3.resolveResourcePath("Sec3Engine/shader/densitySPH.vert"),
+								 SEC3.resolveResourcePath("Sec3Engine/shader/positionSPH.frag"));
 		positionProgram.addCallback( function() {
 			positionProgram.aVertexPosLoc = gl.getAttribLocation( positionProgram.ref(), "a_pos" );
 	        positionProgram.aVertexTexcoordLoc = gl.getAttribLocation( positionProgram.ref(), "a_texCoord" );
@@ -681,8 +685,8 @@ SEC3.SPH.prototype = {
 		//--------------------------------------------------BUILD BUCKETS:)
 		var bucketProgram = SEC3.createShaderProgram();
 		bucketProgram.loadShader(gl,
-								 "Sec3Engine/shader/bucketBuilderSPH.vert",
-								 "Sec3Engine/shader/bucketBuilderSPH.frag");
+								 SEC3.resolveResourcePath("Sec3Engine/shader/bucketBuilderSPH.vert"),
+								 SEC3.resolveResourcePath("Sec3Engine/shader/bucketBuilderSPH.frag"));
 		bucketProgram.addCallback( function() {
 			bucketProgram.aIndexLoc = gl.getAttribLocation( bucketProgram.ref(), "a_index");
 			bucketProgram.uPositionsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_positions");
@@ -700,8 +704,8 @@ SEC3.SPH.prototype = {
 		//-------------------------------------------------UPDATE DENSITIES:
 		var densityProgram = SEC3.createShaderProgram();
 		densityProgram.loadShader(gl, 
-								"Sec3Engine/shader/densitySPH.vert",
-								"Sec3Engine/shader/densitySPH.frag");
+								SEC3.resolveResourcePath("Sec3Engine/shader/densitySPH.vert"),
+								SEC3.resolveResourcePath("Sec3Engine/shader/densitySPH.frag"));
 		densityProgram.addCallback( function() {
 			densityProgram.aVertexPosLoc = gl.getAttribLocation( densityProgram.ref(), "a_pos" );
 	        densityProgram.aVertexTexcoordLoc = gl.getAttribLocation( densityProgram.ref(), "a_texCoord" );
@@ -726,8 +730,8 @@ SEC3.SPH.prototype = {
 		//-------------------------------------RECOMPUTE VELOCITY:
 		var velocityProgram = SEC3.createShaderProgram();
 		velocityProgram.loadShader(gl, 
-										   "Sec3Engine/shader/densitySPH.vert",
-								   		   "Sec3Engine/shader/velocitySPH.frag");
+										   SEC3.resolveResourcePath("Sec3Engine/shader/densitySPH.vert"),
+								   		   SEC3.resolveResourcePath("Sec3Engine/shader/velocitySPH.frag"));
 		velocityProgram.addCallback( function() {
 			velocityProgram.aVertexPosLoc = gl.getAttribLocation( velocityProgram.ref(), "a_pos" );
 	        velocityProgram.aVertexTexcoordLoc = gl.getAttribLocation( velocityProgram.ref(), "a_texCoord" );
@@ -782,8 +786,8 @@ SEC3.SPH.prototype = {
 		//-------------------------------------------------RENDER:
 		var renderProgram = SEC3.createShaderProgram();
 		renderProgram.loadShader(gl, 
-								 "Sec3Engine/shader/renderSPH.vert",
-								 "Sec3Engine/shader/renderSPH.frag");
+								 SEC3.resolveResourcePath("Sec3Engine/shader/renderSPH.vert"),
+								 SEC3.resolveResourcePath("Sec3Engine/shader/renderSPH.frag"));
 		renderProgram.addCallback( function() {
 	        renderProgram.aIndexLoc = gl.getAttribLocation(renderProgram.ref(), "a_index");
 	        renderProgram.aGeometryVertsLoc = gl.getAttribLocation(renderProgram.ref(), "a_GeometryVerts");
@@ -829,5 +833,4 @@ SEC3.SPH.prototype = {
 
 	
 };
-
 

@@ -12,8 +12,8 @@ SEC3.renderer.init = function () {
     var fillGProg = SEC3.createShaderProgram();
     //Load the shader source asynchronously
     fillGProg.loadShader( gl, 
-                         "Sec3Engine/shader/deferredRenderPass1.vert", 
-                         "Sec3Engine/shader/deferredRenderPass1.frag" );
+                         SEC3.resolveResourcePath("Sec3Engine/shader/deferredRenderPass1.vert"), 
+                         SEC3.resolveResourcePath("Sec3Engine/shader/deferredRenderPass1.frag") );
     
     fillGProg.addCallback( function() {
         gl.useProgram( fillGProg.ref() );
@@ -40,8 +40,8 @@ SEC3.renderer.init = function () {
     //Create a shader program for displaying FBO contents
     deferredRenderProg = SEC3.createShaderProgram();
     deferredRenderProg.loadShader( gl, 
-                               "Sec3Engine/shader/deferredRenderPass2.vert", 
-                               "Sec3Engine/shader/deferredRenderPass2.frag" );
+                               SEC3.resolveResourcePath("Sec3Engine/shader/deferredRenderPass2.vert"), 
+                               SEC3.resolveResourcePath("Sec3Engine/shader/deferredRenderPass2.frag") );
 
     deferredRenderProg.addCallback( function(){
         //query the locations of shader parameters
@@ -74,8 +74,8 @@ SEC3.renderer.init = function () {
     //Create a shader program for displaying FBO contents
     debugGProg = SEC3.createShaderProgram();
     debugGProg.loadShader( gl, 
-                               "Sec3Engine/shader/deferredRenderPass2.vert", 
-                               "Sec3Engine/shader/debugGBuffer.frag" );
+                               SEC3.resolveResourcePath("Sec3Engine/shader/deferredRenderPass2.vert"), 
+                               SEC3.resolveResourcePath("Sec3Engine/shader/debugGBuffer.frag") );
 
     debugGProg.addCallback( function(){
         //query the locations of shader parameters

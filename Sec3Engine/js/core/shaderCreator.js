@@ -12,8 +12,8 @@ SEC3.ShaderCreator.buildShadowMapPrograms = function (gl, scene) {
                 ];
     program = SEC3.createShaderProgram();
     program.loadShader( gl,
-                                   "Sec3Engine/shader/buildShadowMap.vert",
-                                  "Sec3Engine/shader/buildShadowMap.frag",
+                                   SEC3.resolveResourcePath("Sec3Engine/shader/buildShadowMap.vert"),
+                                  SEC3.resolveResourcePath("Sec3Engine/shader/buildShadowMap.frag"),
                                   prefixes );
 
     program.addCallback( function(){

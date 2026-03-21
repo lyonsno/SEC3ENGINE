@@ -380,7 +380,11 @@ var loadObjects = function() {
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/Shark/Shark.obj', 'Sec3Engine/models/Shark/Shark.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/bigSphere/sphere.obj', 'Sec3Engine/models/bigSphere/sphere.mtl');
+    objLoader.loadFromFile(
+        gl,
+        SEC3.resolveResourcePath('Sec3Engine/models/bigSphere/sphere.obj'),
+        SEC3.resolveResourcePath('Sec3Engine/models/bigSphere/sphere.mtl')
+    );
     
         
     //Register a callback function that extracts vertex and normal 
