@@ -337,6 +337,124 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
 
         self._run_node(script)
 
+    def test_postfx_init_seeds_default_dof_equation_during_async_boot(self):
+        script = textwrap.dedent(
+            r"""
+            const assert = require("assert");
+            const fs = require("fs");
+            const path = require("path");
+            const vm = require("vm");
+
+            const postFxSource = fs.readFileSync(
+              path.join(process.cwd(), "Sec3Engine/js/core/postFx.js"),
+              "utf8"
+            );
+            const source = fs.readFileSync(
+              path.join(process.cwd(), "Sec3Engine/demos/SEC3DEMO.js"),
+              "utf8"
+            );
+
+            const glCalls = [];
+            const createdPrograms = [];
+            const sandbox = {
+              console,
+              Math,
+              Float32Array,
+              Uint16Array,
+              SEC3: {
+                canvas: {
+                  width: 800,
+                  height: 600,
+                },
+                postFx: {},
+                resolveResourcePath(assetPath) {
+                  return assetPath;
+                },
+                registerAsyncObj() {},
+                createShaderProgram() {
+                  const program = {
+                    loadShader(...args) {
+                      program.shaderPaths = args.filter((value) => typeof value === "string");
+                    },
+                    ref() {
+                      return "dof-program";
+                    },
+                    addCallback(callback) {
+                      program.callback = callback;
+                    },
+                  };
+                  createdPrograms.push(program);
+                  return program;
+                },
+              },
+              vec2: {
+                fromValues(x, y) {
+                  return [x, y];
+                },
+              },
+              vec3: {
+                fromValues(x, y, z) {
+                  return [x, y, z];
+                },
+              },
+              mat4: {
+                create() {
+                  return {};
+                },
+                translate() {},
+              },
+              gl: {
+                getAttribLocation() {
+                  return 0;
+                },
+                getUniformLocation(program, name) {
+                  return name;
+                },
+                useProgram(program) {
+                  glCalls.push(["useProgram", program]);
+                },
+                uniform1f(location, value) {
+                  glCalls.push(["uniform1f", location, value]);
+                },
+                uniform2fv(location, value) {
+                  glCalls.push(["uniform2fv", location, value]);
+                },
+              },
+            };
+            sandbox.window = sandbox;
+
+            vm.createContext(sandbox);
+            vm.runInContext(postFxSource, sandbox, { filename: "postFx.js" });
+            vm.runInContext(source, sandbox, { filename: "SEC3DEMO.js" });
+
+            sandbox.SEC3.postFx.init();
+
+            const dofProgram = createdPrograms.find(
+              (program) =>
+                Array.isArray(program.shaderPaths) &&
+                program.shaderPaths.some((shaderPath) => shaderPath.includes("dofDownsample.frag"))
+            );
+            assert.ok(dofProgram && dofProgram.callback, "postFx.init should register the DOF downsample shader callback");
+
+            glCalls.length = 0;
+            dofProgram.callback();
+
+            assert.deepStrictEqual(
+              glCalls,
+              [
+                ["useProgram", "dof-program"],
+                ["uniform2fv", "u_pixDim", [1 / 800, 1 / 600]],
+                ["uniform1f", "u_near", 0.6],
+                ["uniform1f", "u_far", 30],
+                ["uniform2fv", "u_dofEq", [-6.6, 1.39]],
+              ],
+              "postFx.init should seed the DOF shader with the SEC3 demo defaults during async boot"
+            );
+            """
+        )
+
+        self._run_node(script)
+
     def test_cascade_slider_rebuilds_namespaced_renderer_programs(self):
         script = textwrap.dedent(
             r"""

@@ -487,12 +487,22 @@ SEC3.createParticleSystem = function(specs) {
 
 		positionTextures = [];
 		velocityTextures = [];	
-		// velocities = [];
-		// accelerations = []; 
-		// startPositions = [];
-		// textureMemoryLocation = [];
+		var expectedParticleValues = self.maxParticles * 4;
+		var expectedIndexValues = self.maxParticles * 2;
+		var particleGridResized =
+			startPositions.length !== expectedParticleValues ||
+			velocities.length !== expectedParticleValues ||
+			textureMemoryLocation.length !== expectedIndexValues;
 
-		// createParticlesInSphere();
+		if (particleGridResized) {
+			self.limit = self.maxParticles;
+			velocities = [];
+			accelerations = [];
+			startPositions = [];
+			textureMemoryLocation = [];
+			createParticlesInSphere();
+		}
+
 		initBuffers();
 	};
 
@@ -562,8 +572,8 @@ SEC3.createParticleSystem = function(specs) {
        		}
        		startPositions.push(Math.random());
 
-       		var xIndex = Math.floor(i % self.textureSideLength) / self.textureSideLength ;
-	        var yIndex = i / self.maxParticles; 
+       		var xIndex = Math.floor(i % self.textureSideLength) / self.textureSideLength;
+	        var yIndex = Math.floor(i / self.textureSideLength) / self.textureSideLength;
 
        		textureMemoryLocation.push(xIndex);
        		textureMemoryLocation.push(yIndex);
