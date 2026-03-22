@@ -157,6 +157,69 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
 
         self._run_node(script)
 
+    def test_spotlight_setup_cascades_falls_back_to_global_gl_when_explicit_gl_is_omitted(self):
+        script = textwrap.dedent(
+            r"""
+            const assert = require("assert");
+            const fs = require("fs");
+            const path = require("path");
+            const vm = require("vm");
+
+            const source = fs.readFileSync(
+              path.join(process.cwd(), "Sec3Engine/js/core/SpotLight.js"),
+              "utf8"
+            );
+
+            const calls = [];
+            const globalGl = { tag: "global-gl" };
+            const sandbox = {
+              console,
+              Math,
+              gl: globalGl,
+              SEC3: {
+                PerspProjector: function PerspProjector() {},
+                createFBO() {
+                  return {
+                    initialize(glArg, width, height, attachmentCount) {
+                      calls.push(["initialize", glArg, width, height, attachmentCount]);
+                      return true;
+                    },
+                  };
+                },
+              },
+              mat4: {
+                create() {
+                  return {};
+                },
+                perspective() {},
+              },
+            };
+            sandbox.SEC3.PerspProjector.prototype = {};
+
+            vm.createContext(sandbox);
+            vm.runInContext(source, sandbox, { filename: "SpotLight.js" });
+
+            const light = new sandbox.SEC3.SpotLight(512);
+            light.fov = 60;
+            light.aspect = 1;
+            light.zNear = 0.6;
+            light.zFar = 30;
+            light.disposeBuffers = function() {
+              this.cascadeFramebuffers = [];
+            };
+
+            light.setupCascades(1, 512);
+
+            assert.deepStrictEqual(
+              calls,
+              [["initialize", globalGl, 512, 512, 1]],
+              "setupCascades should preserve the legacy global-gl fallback when no explicit gl argument is provided"
+            );
+            """
+        )
+
+        self._run_node(script)
+
     def test_blur_slider_uses_namespaced_postfx_program(self):
         script = textwrap.dedent(
             r"""
@@ -475,6 +538,7 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
             const sliderEntries = [];
             const calls = [];
             const pendingTimeouts = [];
+            const pendingAnimationFrames = [];
             let renderLoopStarts = 0;
             const gl = {
               tag: "gl",
@@ -559,6 +623,7 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
                 },
                 renderLoop() {
                   renderLoopStarts += 1;
+                  sandbox.window.requestAnimationFrame(function noop() {});
                 },
               },
               UI: function UI() {
@@ -581,6 +646,10 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
               },
             };
             sandbox.window = sandbox;
+            sandbox.requestAnimationFrame = function(callback) {
+              pendingAnimationFrames.push(callback);
+              return pendingAnimationFrames.length;
+            };
 
             vm.createContext(sandbox);
             vm.runInContext(webglUtilSource, sandbox, { filename: "webgl-util.js" });
@@ -589,6 +658,7 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
             sandbox.SEC3.isWaiting = true;
             sandbox.SEC3.run(gl);
             assert.strictEqual(renderLoopStarts, 1, "Initial async boot should start the render loop once");
+            assert.strictEqual(pendingAnimationFrames.length, 1, "Initial boot should schedule a follow-up animation frame");
             calls.length = 0;
 
             sandbox.initLightUi();

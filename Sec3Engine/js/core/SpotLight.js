@@ -18,9 +18,22 @@ SEC3.SpotLight = function(resolution){
 
 SEC3.SpotLight.prototype = Object.create( SEC3.PerspProjector.prototype );
 
+var resolveLightGl = function(gl) {
+    if (gl) {
+        return gl;
+    }
+    if (typeof globalThis !== "undefined" && globalThis.gl) {
+        return globalThis.gl;
+    }
+    if (typeof window !== "undefined" && window.gl) {
+        return window.gl;
+    }
+    return gl;
+};
 
 SEC3.SpotLight.prototype.addCascade = function( resolution, near, far, gl ) {
 
+    gl = resolveLightGl(gl);
 
     var fbo = SEC3.createFBO();
     if (! fbo.initialize( gl, resolution, resolution, 1 )) {
@@ -40,6 +53,7 @@ SEC3.SpotLight.prototype.addCascade = function( resolution, near, far, gl ) {
 
 SEC3.SpotLight.prototype.setupCascades = function( number, nearResolution, gl, scene ) {
 
+    gl = resolveLightGl(gl);
     this.disposeBuffers(gl);
     this.cascadeMatrices = [];
     this.cascadeClips = [];
@@ -58,6 +72,7 @@ SEC3.SpotLight.prototype.setupCascades = function( number, nearResolution, gl, s
 };
 
 SEC3.SpotLight.prototype.disposeBuffers = function(gl) {
+    gl = resolveLightGl(gl);
     var i;
     for(i = 0; i < this.cascadeFramebuffers.length; i++) {
         this.cascadeFramebuffers[i].dispose(gl);

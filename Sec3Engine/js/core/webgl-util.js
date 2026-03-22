@@ -69,8 +69,27 @@ SEC3.run = function(gl){
     if( n === 0 ){
         SEC3.isWaiting = false;
         if( !SEC3.renderLoopStarted ){
-            SEC3.renderLoopStarted = true;
-            SEC3.renderLoop();
+            var didScheduleNextFrame = false;
+            var originalRequestAnimationFrame = null;
+
+            if( typeof window !== "undefined" && typeof window.requestAnimationFrame === "function" ){
+                originalRequestAnimationFrame = window.requestAnimationFrame;
+                window.requestAnimationFrame = function() {
+                    didScheduleNextFrame = true;
+                    return originalRequestAnimationFrame.apply(window, arguments);
+                };
+            }
+
+            try {
+                SEC3.renderLoop();
+            }
+            finally {
+                if( originalRequestAnimationFrame ){
+                    window.requestAnimationFrame = originalRequestAnimationFrame;
+                }
+            }
+
+            SEC3.renderLoopStarted = didScheduleNextFrame;
         }
         gl.asyncObjArray = [];
     }
