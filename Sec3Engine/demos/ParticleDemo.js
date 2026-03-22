@@ -5,11 +5,11 @@ var particleSpecs = {
     maxParticles : 200000,
     emitters : [],
     gravityModifier : 1.0,
-    RGBA : [0.0, 0.2, 0.9, 0.025],
+    RGBA : [0.0, 0.2, 0.9, 0.1],
     damping : 1.004,
     type : "nBody",
     activeBodies : 0,
-    particleSize : 1.0,
+    particleSize : 4.0,
     luminence : 166.0,
     scatterMultiply : 1.75,
     shadowMultiply : 0.1,
@@ -80,6 +80,26 @@ function initUiButtons() {
     
     SEC3ENGINE.ui = new UI("uiWrapper");
 
+    var withPresentationPrograms = function(callback) {
+        if (system.withRenderPrograms) {
+            system.withRenderPrograms(callback);
+            return;
+        }
+        if (system.renderProgram) {
+            callback(system.renderProgram);
+        }
+    };
+
+    var updatePresentationFloatUniform = function(uniformName, value) {
+        withPresentationPrograms(function(program) {
+            if (!program || !program.ref || !program[uniformName]) {
+                return;
+            }
+            gl.useProgram(program.ref());
+            gl.uniform1f(program[uniformName], value);
+        });
+    };
+
     //courtesy of http://stackoverflow.com/a/2901298
     var numberWithCommas = function(stringMe) {
         return stringMe.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -136,8 +156,8 @@ function initUiButtons() {
     var alphaCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        gl.useProgram(system.renderProgram.ref());
-        gl.uniform1f(system.renderProgram.uAlpha, newSliderVal);
+        system.RGBA[3] = newSliderVal;
+        updatePresentationFloatUniform("uAlpha", newSliderVal);
         return "Particle transparency: " + newSliderVal;
     };
 
@@ -152,8 +172,8 @@ function initUiButtons() {
     var sizeCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        gl.useProgram(system.renderProgram.ref());
-        gl.uniform1f(system.renderProgram.uSize, newSliderVal);
+        system.particleSize = newSliderVal;
+        updatePresentationFloatUniform("uSize", newSliderVal);
         return "Particle draw size: " + newSliderVal;
     };
 
@@ -168,8 +188,8 @@ function initUiButtons() {
     var luminenceCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        gl.useProgram(system.renderProgram.ref());
-        gl.uniform1f(system.renderProgram.uLuminence, newSliderVal);
+        system.luminence = newSliderVal;
+        updatePresentationFloatUniform("uLuminence", newSliderVal);
         return "luminence: " + newSliderVal;
     };
 
@@ -184,8 +204,8 @@ function initUiButtons() {
     var scatterCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        gl.useProgram(system.renderProgram.ref());
-        gl.uniform1f(system.renderProgram.uScatterMultiply, newSliderVal);
+        system.scatterMultiply = newSliderVal;
+        updatePresentationFloatUniform("uScatterMultiply", newSliderVal);
         return "Scatter intensity: " + newSliderVal;
     };
 
@@ -200,8 +220,8 @@ function initUiButtons() {
     var shadowCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        gl.useProgram(system.renderProgram.ref());
-        gl.uniform1f(system.renderProgram.uShadowMultiply, newSliderVal);
+        system.shadowMultiply = newSliderVal;
+        updatePresentationFloatUniform("uShadowMultiply", newSliderVal);
         return "Shadow intensity: " + newSliderVal;
     };
 
@@ -216,8 +236,8 @@ function initUiButtons() {
     var scaleCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        gl.useProgram(system.renderProgram.ref());
-        gl.uniform1f(system.renderProgram.uScale, newSliderVal);
+        system.scale = newSliderVal;
+        updatePresentationFloatUniform("uScale", newSliderVal);
         return "Scale factor: " + newSliderVal;
     };
 

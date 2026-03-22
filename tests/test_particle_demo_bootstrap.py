@@ -159,6 +159,138 @@ class ParticleDemoBootstrapTests(unittest.TestCase):
             f"Node particle-demo bootstrap smoke test failed:\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
         )
 
+    def test_slider_callbacks_update_all_presentation_render_programs_when_available(self):
+        script = textwrap.dedent(
+            r"""
+            const assert = require("assert");
+            const fs = require("fs");
+            const path = require("path");
+            const vm = require("vm");
+
+            const source = fs.readFileSync(
+              path.join(process.cwd(), "Sec3Engine/demos/ParticleDemo.js"),
+              "utf8"
+            );
+
+            const sliderEntries = [];
+            const glCalls = [];
+            const staleProgram = {
+              ref() {
+                return "stale-program-ref";
+              },
+              uAlpha: "stale-uAlpha",
+            };
+            const primaryProgram = {
+              ref() {
+                return "primary-program-ref";
+              },
+              uAlpha: "primary-uAlpha",
+            };
+            const alternateProgram = {
+              ref() {
+                return "alternate-program-ref";
+              },
+              uAlpha: "alternate-uAlpha",
+            };
+
+            const sandbox = {
+              console,
+              Math,
+              SEC3ENGINE: {},
+              UI: function UI() {
+                return {
+                  addButton() {},
+                  addSlider(label, callback) {
+                    sliderEntries.push([label, callback]);
+                  },
+                };
+              },
+              gl: {
+                useProgram(programRef) {
+                  glCalls.push(["useProgram", programRef]);
+                },
+                uniform1f(location, value) {
+                  glCalls.push(["uniform1f", location, value]);
+                },
+              },
+              mat4: {
+                create() {
+                  return {};
+                },
+              },
+              requestAnimationFrame() {},
+              document: {
+                getElementById() {
+                  return {};
+                },
+              },
+              window: {},
+            };
+            sandbox.window = sandbox;
+            sandbox.SEC3ENGINE.ui = null;
+
+            vm.createContext(sandbox);
+            vm.runInContext(source, sandbox, { filename: "ParticleDemo.js" });
+
+            sandbox.system = {
+              maxParticles: 4,
+              gravityModifier: 1,
+              RGBA: [0, 0, 0, 0.1],
+              particleSize: 1,
+              luminence: 10,
+              scatterMultiply: 1,
+              shadowMultiply: 1,
+              scale: 1,
+              damping: 1,
+              activeBodies: 1,
+              renderProgram: staleProgram,
+              withRenderPrograms(callback) {
+                callback(primaryProgram);
+                callback(alternateProgram);
+              },
+              stepProgram: {
+                ref() {
+                  return "step-program-ref";
+                },
+                uGravityModifier: "uGravityModifier",
+                uDamping: "uDamping",
+                uInteractions: "uInteractions",
+              },
+              restart() {},
+            };
+
+            sandbox.initUiButtons();
+            const alphaSlider = sliderEntries.find(([label]) => label.includes("Particle transparency:"));
+            assert.ok(alphaSlider, "ParticleDemo should register a transparency slider callback");
+
+            alphaSlider[1]({ target: { value: 0.05 } });
+
+            assert.deepStrictEqual(
+              glCalls,
+              [
+                ["useProgram", "primary-program-ref"],
+                ["uniform1f", "primary-uAlpha", 0.05],
+                ["useProgram", "alternate-program-ref"],
+                ["uniform1f", "alternate-uAlpha", 0.05],
+              ],
+              "Particle transparency slider should update all available presentation render programs, not a stale renderProgram pointer"
+            );
+            """
+        )
+
+        completed = subprocess.run(
+            ["node", "-e", script],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(
+            completed.returncode,
+            0,
+            f"Node particle-demo slider uniform fanout probe failed:\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -5,6 +5,7 @@ import re
 import shutil
 import socket
 import subprocess
+import tempfile
 import threading
 import unittest
 from pathlib import Path
@@ -73,12 +74,51 @@ class LocalHTTPServer:
             self.thread.join(timeout=2)
 
 
+def write_sec3demo_harness_file(directory: Path, harness_source: str):
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        dir=directory,
+        prefix="__sec3demo_dof_harness__",
+        suffix=".html",
+        delete=False,
+    ) as harness_file:
+        harness_file.write(harness_source)
+        return Path(harness_file.name)
+
+
+class Sec3DemoHarnessFileTests(unittest.TestCase):
+    def test_harness_file_creation_uses_unique_path_and_preserves_existing_fixed_name_file(self):
+        with tempfile.TemporaryDirectory(prefix="sec3engine-sec3demo-harness-") as temp_dir:
+            temp_dir_path = Path(temp_dir)
+            fixed_name_path = temp_dir_path / "__sec3demo_dof_harness__.html"
+            fixed_name_path.write_text("do-not-touch", encoding="utf-8")
+
+            harness_path = write_sec3demo_harness_file(temp_dir_path, "<html><body>probe</body></html>")
+            try:
+                self.assertNotEqual(
+                    harness_path,
+                    fixed_name_path,
+                    "SEC3 browser smoke harness should use a unique temp filename instead of a fixed top-level name",
+                )
+                self.assertEqual(
+                    fixed_name_path.read_text(encoding="utf-8"),
+                    "do-not-touch",
+                    "Creating a harness file should not overwrite a pre-existing fixed-name harness file",
+                )
+            finally:
+                harness_path.unlink(missing_ok=True)
+
+            self.assertTrue(
+                fixed_name_path.exists(),
+                "Removing the generated harness should not remove unrelated pre-existing fixed-name files",
+            )
+
+
 @unittest.skipUnless(find_chrome_binary() is not None, "Google Chrome or Chromium is required for browser smoke tests")
 @unittest.skipUnless(can_bind_localhost(), "Loopback HTTP server access is required for browser smoke tests")
 class Sec3DemoBrowserSmokeTests(unittest.TestCase):
     def test_index_dof_keypath_invokes_browser_dof_pass(self):
-        harness_name = "__sec3demo_dof_harness__.html"
-        harness_path = REPO_ROOT / harness_name
         harness_source = """<!doctype html>
 <html>
   <body>
@@ -219,7 +259,7 @@ class Sec3DemoBrowserSmokeTests(unittest.TestCase):
   </body>
 </html>
 """
-        harness_path.write_text(harness_source, encoding="utf-8")
+        harness_path = write_sec3demo_harness_file(REPO_ROOT, harness_source)
         try:
             with LocalHTTPServer(REPO_ROOT) as base_url:
                 completed = subprocess.run(
@@ -235,7 +275,7 @@ class Sec3DemoBrowserSmokeTests(unittest.TestCase):
                         "--enable-unsafe-swiftshader",
                         "--virtual-time-budget=7000",
                         "--dump-dom",
-                        f"{base_url}/{harness_name}",
+                        f"{base_url}/{harness_path.name}",
                     ],
                     cwd=REPO_ROOT,
                     capture_output=True,

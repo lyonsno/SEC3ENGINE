@@ -518,6 +518,148 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
 
         self._run_node(script)
 
+    def test_dof_key_selects_second_pass_and_invokes_dof_pipeline(self):
+        script = textwrap.dedent(
+            r"""
+            const assert = require("assert");
+            const fs = require("fs");
+            const path = require("path");
+            const vm = require("vm");
+
+            const source = fs.readFileSync(
+              path.join(process.cwd(), "Sec3Engine/demos/SEC3DEMO.js"),
+              "utf8"
+            );
+
+            const calls = [];
+            const selectedLight = { id: "selected-light" };
+            const sandbox = {
+              console,
+              Math,
+              Float32Array,
+              Uint16Array,
+              vec2: {
+                fromValues(x, y) {
+                  return [x, y];
+                },
+              },
+              vec3: {
+                fromValues(x, y, z) {
+                  return [x, y, z];
+                },
+              },
+              mat4: {
+                create() {
+                  return {};
+                },
+                translate() {},
+              },
+              interactor: {
+                onKeyDown(event) {
+                  calls.push(["interactor.onKeyDown", event.keyCode]);
+                },
+              },
+              scene: {
+                getLight(index) {
+                  calls.push(["scene.getLight", index]);
+                  return selectedLight;
+                },
+                getCamera() {
+                  return { id: "scene-camera" };
+                },
+              },
+              particleSystem: {
+                stepParticles() {
+                  calls.push(["particleSystem.stepParticles"]);
+                },
+                updateShadowMap(light) {
+                  calls.push(["particleSystem.updateShadowMap", light]);
+                },
+                draw(light) {
+                  calls.push(["particleSystem.draw", light]);
+                },
+              },
+              SEC3: {
+                isWaiting: false,
+                canvas: { width: 800, height: 600 },
+                renderer: {
+                  updateShadowMaps(sceneArg) {
+                    calls.push(["renderer.updateShadowMaps", sceneArg]);
+                  },
+                  fillGPass(gBufferArg, cameraArg) {
+                    calls.push(["renderer.fillGPass", gBufferArg, cameraArg]);
+                  },
+                  deferredRender(sceneArg, gBufferArg, gBufferArg2) {
+                    calls.push(["renderer.deferredRender", sceneArg, gBufferArg, gBufferArg2]);
+                  },
+                },
+                postFx: {
+                  dofPass() {
+                    calls.push(["postFx.dofPass"]);
+                  },
+                  finalPass(textureArg) {
+                    calls.push(["postFx.finalPass", textureArg]);
+                  },
+                },
+              },
+              camera: { id: "camera" },
+              finalFBO: {
+                texture(index) {
+                  return "finalFBO.texture(" + index + ")";
+                },
+              },
+              workingFBO: {
+                texture(index) {
+                  return "workingFBO.texture(" + index + ")";
+                },
+              },
+              lightFBO: { id: "lightFBO" },
+              gl: {},
+              window: {},
+            };
+            sandbox.window = sandbox;
+            sandbox.SEC3.gBuffer = { id: "gBuffer" };
+            sandbox.elCounter = 0;
+
+            vm.createContext(sandbox);
+            vm.runInContext(source, sandbox, { filename: "SEC3DEMO.js" });
+            sandbox.moveLight = function(light) {
+              calls.push(["moveLight", light]);
+            };
+
+            sandbox.setKeyInputs();
+            sandbox.window.onkeydown({ keyCode: 55 });
+            assert.strictEqual(
+              sandbox.demo.secondPass,
+              "dofProg",
+              "Key 7 should switch the SEC3 demo second-pass mode into DOF"
+            );
+
+            calls.length = 0;
+            sandbox.myRender();
+
+            assert.deepStrictEqual(
+              calls,
+              [
+                ["particleSystem.stepParticles"],
+                ["scene.getLight", 0],
+                ["moveLight", selectedLight],
+                ["renderer.updateShadowMaps", sandbox.scene],
+                ["scene.getLight", 0],
+                ["particleSystem.updateShadowMap", selectedLight],
+                ["renderer.fillGPass", sandbox.SEC3.gBuffer, { id: "scene-camera" }],
+                ["renderer.deferredRender", sandbox.scene, sandbox.SEC3.gBuffer, sandbox.SEC3.gBuffer],
+                ["particleSystem.draw", selectedLight],
+                ["postFx.dofPass"],
+                ["postFx.finalPass", "workingFBO.texture(0)"],
+              ],
+              "When the second pass is DOF, myRender should execute the DOF pipeline and present workingFBO.texture(0)"
+            );
+            """
+        )
+
+        self._run_node(script)
+
     def test_cascade_slider_rebuilds_namespaced_renderer_programs(self):
         script = textwrap.dedent(
             r"""
