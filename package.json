@@ -1,0 +1,16 @@
+{
+  "name": "sec3engine",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "dev:open": "vite --open /index.html",
+    "build": "vite build",
+    "preview": "vite preview",
+    "smoke": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_entrypoint_script_paths tests.test_particle_demo_bootstrap tests.test_vite_workflow_contract -v",
+    "smoke:browser": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_particle_demo_browser_smoke tests.test_sec3demo_browser_smoke -v"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

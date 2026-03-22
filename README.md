@@ -8,13 +8,39 @@ SEC3ENGINE hosts several WebGL sandboxes focused on modern real-time rendering t
 - **Particle sandbox (`particleDemo.html`)** – standalone particle UI for experimenting with particle counts, gravity, transparency, and point size.
 - **Engine bootstrap (`Sec3Engine/sec3index.html`)** – minimal page wiring the engine modules manually for custom experiments.
 
-Run the pages from a local HTTP server so shaders, textures, and models load correctly:
+Run the pages from a local HTTP server so shaders, textures, and models load correctly.
+For day-to-day development, use the Vite dev server for automatic reloads:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the desired page, e.g. `http://127.0.0.1:5173/index.html` or `http://127.0.0.1:5173/particleDemo.html`.
+
+For quick startup that also opens the main demo automatically:
+
+```bash
+npm run dev:open
+```
+
+To run a one-command smoke check before/after changes:
+
+```bash
+npm run smoke
+```
+
+To run optional browser-backed smoke checks (Chrome/Chromium required; tests auto-skip when unavailable):
+
+```bash
+npm run smoke:browser
+```
+
+If you want a no-dependency fallback static server, this still works:
 
 ```bash
 python3 -m http.server 8000
 ```
-
-Then open the desired page, e.g. `http://localhost:8000/index.html` or `http://localhost:8000/particleDemo.html`.
 
 ## Repository layout
 
