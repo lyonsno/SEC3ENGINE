@@ -19,6 +19,9 @@ var UI = {};
 
 		uiDiv = document.getElementById(divID);
 		numElements = 0;
+		if (uiDiv) {
+			uiDiv.style.boxSizing = "border-box";
+		}
 		// Init fields?
 	}
 
@@ -54,12 +57,14 @@ var UI = {};
 
 		addButton : function(label, onEvent) {
 			var newDiv = document.createElement("div");
+			newDiv.style.marginBottom = "8px";
 
 			var newButton = document.createElement("input");
 
 			newButton.type = "button";
 			newButton.id = label;
 			newButton.value = label;
+			newButton.style.width = "100%";
 
 			newDiv.appendChild(newButton);
 			uiDiv.appendChild(newDiv);
@@ -77,6 +82,10 @@ var UI = {};
 		addSlider : function(label, onEvent, value, min, max, step) {
 
 			var newDiv = document.createElement("div");
+			newDiv.style.display = "flex";
+			newDiv.style.flexDirection = "column";
+			newDiv.style.gap = "4px";
+			newDiv.style.marginBottom = "10px";
 
 			var newSlider = document.createElement("input");
 
@@ -86,11 +95,17 @@ var UI = {};
 			newSlider.max = max;
 			newSlider.step = step;
 			newSlider.value = value;
+			newSlider.style.width = "100%";
+			newSlider.style.margin = "0";
 
 			newDiv.appendChild(newSlider);
 
 			var newLabel = document.createElement("label");
 			newLabel.innerText = label + "";
+			newLabel.style.display = "block";
+			newLabel.style.whiteSpace = "normal";
+			newLabel.style.wordBreak = "break-word";
+			newLabel.style.lineHeight = "1.2";
 			newDiv.appendChild(newLabel);
 
 			uiDiv.appendChild(newDiv);

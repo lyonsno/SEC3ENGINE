@@ -64,11 +64,58 @@
 <head>
  <meta charset="utf-8"/>
  <title>WebGL Render View</title>
+ <style>
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #webglview {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #uiWrapper {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 300px;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+    z-index: 10;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(8, 12, 20, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #eef3ff;
+    font: 12px/1.3 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  #uiWrapper input[type="range"] {
+    width: 100%;
+  }
+
+  #uiWrapper input[type="button"] {
+    width: 100%;
+  }
+
+  #message {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 11;
+  }
+ </style>
 </head>
 <body>
-	<div id="uiWrapper" style="margin-top:100px;float:right;width=300px"></div>
-	<div id="message" style="position:absolute;top:100px"></div>
-	<canvas id="webglview" width="800" height="500">
+	<div id="uiWrapper"></div>
+	<div id="message"></div>
+	<canvas id="webglview" width="1920" height="1080">
 	WebGL unavailable.
 	</canvas>
 	<script src="Sec3Engine/js/core/Chunker.js" type ="text/javascript"></script>

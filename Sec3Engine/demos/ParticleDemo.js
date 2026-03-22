@@ -28,6 +28,28 @@ var system;
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
 
+function syncCanvasToWindow(canvas) {
+    var viewportWidth = canvas.width;
+    var viewportHeight = canvas.height;
+
+    if (typeof window !== "undefined" && window.innerWidth && window.innerHeight) {
+        viewportWidth = window.innerWidth;
+        viewportHeight = window.innerHeight;
+    }
+    else if (
+        typeof document !== "undefined" &&
+        document.documentElement &&
+        document.documentElement.clientWidth &&
+        document.documentElement.clientHeight
+    ) {
+        viewportWidth = document.documentElement.clientWidth;
+        viewportHeight = document.documentElement.clientHeight;
+    }
+
+    canvas.width = Math.max(1, Math.floor(viewportWidth));
+    canvas.height = Math.max(1, Math.floor(viewportHeight));
+}
+
 //--------------------------------------------------------------FUNCTIONS:
 
 function drawScene() {
@@ -305,6 +327,7 @@ function webGLStart() {
 
     canvas = document.getElementById("glcanvas");
     SEC3.canvas = canvas;
+    syncCanvasToWindow(canvas);
     initGL(canvas);
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);

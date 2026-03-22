@@ -27,6 +27,28 @@ var fbo;    //Framebuffer object storing data for postprocessing effects
 var lowResFBO; //Framebuffer object for storing unprocessed image
 var workingFBO;
 
+var syncCanvasToWindow = function(canvas) {
+    var viewportWidth = canvas.width;
+    var viewportHeight = canvas.height;
+
+    if (typeof window !== "undefined" && window.innerWidth && window.innerHeight) {
+        viewportWidth = window.innerWidth;
+        viewportHeight = window.innerHeight;
+    }
+    else if (
+        typeof document !== "undefined" &&
+        document.documentElement &&
+        document.documentElement.clientWidth &&
+        document.documentElement.clientHeight
+    ) {
+        viewportWidth = document.documentElement.clientWidth;
+        viewportHeight = document.documentElement.clientHeight;
+    }
+
+    canvas.width = Math.max(1, Math.floor(viewportWidth));
+    canvas.height = Math.max(1, Math.floor(viewportHeight));
+};
+
 var demo = (function () {
 
     var demo = [];
@@ -516,6 +538,7 @@ var setupScene = function(canvasId, messageId ) {
     //get WebGL context
     canvas = document.getElementById( canvasId );
     SEC3.canvas = canvas;
+    syncCanvasToWindow(canvas);
     msg = document.getElementById( messageId );
     gl = SEC3.getWebGLContext( canvas, msg );
     if (! gl) {
