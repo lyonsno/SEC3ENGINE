@@ -145,6 +145,10 @@
             return init( gl, width, height, numAttatchments, inputTextures);
         },
         dispose: function(gl) {
+            gl = gl || globalThis.gl;
+            if( !gl ){
+                return;
+            }
             var i;
             for(i = 0; i < textures.length; i++) {
                 gl.deleteTexture(textures[i]);
@@ -193,4 +197,3 @@
     };
 
 };
-

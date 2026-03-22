@@ -314,10 +314,12 @@ var initLightUi = function() {
         var light = scene.getLight(demo.selectedLight);
         light.setupCascades(newSliderVal, light.nearResolution, gl, scene);
 
+        var buildShadowMapProg = SEC3.renderer.buildShadowMapProg;
         buildShadowMapProg.dispose(gl);
-        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+        SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+        var renderWithCascadesProg = SEC3.renderer.renderWithCascadesProg;
         renderWithCascadesProg.dispose(gl);
-        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+        SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
         SEC3.run(gl);
         return newSliderVal + " :Cascades";
     };
@@ -367,6 +369,7 @@ function initDofButtons() {
     var slopeCallback = function(e) {
 
         var newSliderVal = e.target.value;
+        var dofDownsampleProg = SEC3.postFx.dofDownsampleProg;
         gl.useProgram(dofDownsampleProg.ref());
         demo.nearSlope = newSliderVal;
         gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
@@ -383,6 +386,7 @@ function initDofButtons() {
     var interceptCallback = function(e) {
 
         var newSliderVal = e.target.value;
+        var dofDownsampleProg = SEC3.postFx.dofDownsampleProg;
         gl.useProgram(dofDownsampleProg.ref());
         demo.nearIntercept = newSliderVal;
         gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
@@ -439,6 +443,7 @@ function initBlurButtons() {
         var newSliderVal = e.target.value;
         demo.blurSigma = newSliderVal;
         var sigmaSquared = demo.blurSigma * demo.blurSigma;
+        var blurProg = SEC3.postFx.blurGaussianProg;
         gl.useProgram(blurProg.ref());
         gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
 

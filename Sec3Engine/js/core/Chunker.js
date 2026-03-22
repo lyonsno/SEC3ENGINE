@@ -347,6 +347,5 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 			"gl_FragData[3] = vec4( 2.0 * sqrt(cascadeColors * color.rgb),  sqrt(color.a) ); \n" +
 		"} \n";
 	var text = declarations + methods + main;
-	console.log(text);
 	return text;
 }

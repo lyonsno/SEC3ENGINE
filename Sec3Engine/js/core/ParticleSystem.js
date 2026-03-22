@@ -348,6 +348,12 @@ SEC3.createParticleSystem = function(specs) {
 	        ext.COLOR_ATTACHMENT1_WEBGL,
 	    ]);
 
+	    // The standalone particle demo enters its render loop immediately after
+	    // async shader setup finishes. Leaving this update FBO bound here means
+	    // the first frame's gl.clear() hits an incomplete framebuffer before
+	    // stepParticles() has attached the ping-pong textures.
+	    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
 	};
 
 	var generateTexture = function(values, size) { // TODO must change for emitter

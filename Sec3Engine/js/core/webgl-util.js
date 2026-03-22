@@ -68,7 +68,10 @@ SEC3.run = function(gl){
 
     if( n === 0 ){
         SEC3.isWaiting = false;
-        SEC3.renderLoop(); 
+        if( !SEC3.renderLoopStarted ){
+            SEC3.renderLoopStarted = true;
+            SEC3.renderLoop();
+        }
         gl.asyncObjArray = [];
     }
     else{
