@@ -24,6 +24,7 @@ var emitterSpecs = {
 var canvas;
 var gl;
 var system;
+var particleDemoResizeHandler = null;
 
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
@@ -46,8 +47,28 @@ function syncCanvasToWindow(canvas) {
         viewportHeight = document.documentElement.clientHeight;
     }
 
-    canvas.width = Math.max(1, Math.floor(viewportWidth));
-    canvas.height = Math.max(1, Math.floor(viewportHeight));
+    var dpr = 1;
+    if (typeof window !== "undefined" && window.devicePixelRatio) {
+        dpr = Math.min(window.devicePixelRatio, 2);
+    }
+
+    canvas.width = Math.max(1, Math.floor(viewportWidth * dpr));
+    canvas.height = Math.max(1, Math.floor(viewportHeight * dpr));
+}
+
+function resizeParticleDemoViewport() {
+    if (!canvas || !gl) {
+        return;
+    }
+
+    syncCanvasToWindow(canvas);
+    gl.viewportWidth = canvas.width;
+    gl.viewportHeight = canvas.height;
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+    if (camera && camera.setPerspective) {
+        camera.setPerspective(60, canvas.width / canvas.height, 0.6, 30.0);
+    }
 }
 
 //--------------------------------------------------------------FUNCTIONS:
@@ -339,6 +360,16 @@ function webGLStart() {
      
     gl.clearColor(0.2, 0.2, 0.2, 1.0);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+    if (typeof window !== "undefined" && window.addEventListener) {
+        if (particleDemoResizeHandler && window.removeEventListener) {
+            window.removeEventListener("resize", particleDemoResizeHandler);
+        }
+        particleDemoResizeHandler = function() {
+            resizeParticleDemoViewport();
+        };
+        window.addEventListener("resize", particleDemoResizeHandler);
+    }
     
     startDemo();
 }

@@ -26,6 +26,9 @@ var showShadowMap;
 var fbo;    //Framebuffer object storing data for postprocessing effects
 var lowResFBO; //Framebuffer object for storing unprocessed image
 var workingFBO;
+var sec3DemoResizeHandler = null;
+var sec3DemoResizeQueued = false;
+var sec3DemoResizeFrameToken = null;
 
 var syncCanvasToWindow = function(canvas) {
     var viewportWidth = canvas.width;
@@ -45,8 +48,73 @@ var syncCanvasToWindow = function(canvas) {
         viewportHeight = document.documentElement.clientHeight;
     }
 
-    canvas.width = Math.max(1, Math.floor(viewportWidth));
-    canvas.height = Math.max(1, Math.floor(viewportHeight));
+    var dpr = 1;
+    if (typeof window !== "undefined" && window.devicePixelRatio) {
+        dpr = Math.min(window.devicePixelRatio, 2);
+    }
+
+    canvas.width = Math.max(1, Math.floor(viewportWidth * dpr));
+    canvas.height = Math.max(1, Math.floor(viewportHeight * dpr));
+};
+
+var resizeSceneViewportAndTargets = function() {
+    if (!SEC3 || !SEC3.canvas || !gl) {
+        return;
+    }
+
+    var previousWidth = SEC3.canvas.width;
+    var previousHeight = SEC3.canvas.height;
+    syncCanvasToWindow(SEC3.canvas);
+    if (previousWidth === SEC3.canvas.width && previousHeight === SEC3.canvas.height) {
+        return;
+    }
+
+    gl.viewportWidth = SEC3.canvas.width;
+    gl.viewportHeight = SEC3.canvas.height;
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+
+    if (camera && camera.setPerspective) {
+        camera.setPerspective(60, SEC3.canvas.width / SEC3.canvas.height, demo.zNear, demo.zFar);
+    }
+
+    var width = SEC3.canvas.width;
+    var height = SEC3.canvas.height;
+
+    var resizeFbo = function(target, attachments, label) {
+        if (!target || !target.initialize) {
+            return true;
+        }
+        if (!target.initialize(gl, width, height, attachments)) {
+            console.log(label + " resize failed.");
+            return false;
+        }
+        return true;
+    };
+
+    if (!resizeFbo(SEC3.gBuffer, undefined, "gBuffer")) return;
+    if (!resizeFbo(fbo, undefined, "fbo")) return;
+    if (!resizeFbo(workingFBO, undefined, "workingFBO")) return;
+    if (!resizeFbo(finalFBO, undefined, "finalFBO")) return;
+    if (!resizeFbo(debugFBO, 4, "debugFBO")) return;
+    resizeFbo(lightFBO, 4, "lightFBO");
+};
+
+var queueSceneResize = function() {
+    if (sec3DemoResizeQueued) {
+        return;
+    }
+
+    if (typeof window === "undefined" || !window.requestAnimationFrame) {
+        resizeSceneViewportAndTargets();
+        return;
+    }
+
+    sec3DemoResizeQueued = true;
+    sec3DemoResizeFrameToken = window.requestAnimationFrame(function() {
+        sec3DemoResizeQueued = false;
+        sec3DemoResizeFrameToken = null;
+        resizeSceneViewportAndTargets();
+    });
 };
 
 var demo = (function () {
@@ -647,6 +715,21 @@ var setupScene = function(canvasId, messageId ) {
     if (! lightFBO.initialize( gl, canvas.width, canvas.height, 4 )) {
         console.log( "lightFBO initialization failed.");
         return;
+    }
+
+    if (typeof window !== "undefined" && window.addEventListener) {
+        if (sec3DemoResizeHandler && window.removeEventListener) {
+            window.removeEventListener("resize", sec3DemoResizeHandler);
+        }
+        if (sec3DemoResizeFrameToken !== null && window.cancelAnimationFrame) {
+            window.cancelAnimationFrame(sec3DemoResizeFrameToken);
+            sec3DemoResizeFrameToken = null;
+            sec3DemoResizeQueued = false;
+        }
+        sec3DemoResizeHandler = function() {
+            queueSceneResize();
+        };
+        window.addEventListener("resize", sec3DemoResizeHandler);
     }
 
 };

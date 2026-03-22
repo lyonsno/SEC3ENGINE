@@ -37,6 +37,27 @@
     var fbo = null;
     var resolution = [];
     var drawbuffers = [];
+    function releaseAllocatedResources(gl){
+        var i;
+        if( !gl ){
+            return;
+        }
+        for(i = 0; i < textures.length; i++) {
+            if (textures[i]) {
+                gl.deleteTexture(textures[i]);
+            }
+        }
+        textures = [];
+        if (depthTex) {
+            gl.deleteTexture(depthTex);
+            depthTex = null;
+        }
+        if (fbo) {
+            gl.deleteFramebuffer(fbo);
+            fbo = null;
+        }
+        drawbuffers = [];
+    }
 
     function init( gl, width, height, numAttatchments, inputTextures ){
         numAttatchments = numAttatchments || 4;
@@ -55,6 +76,11 @@
     		alert("Depth texture extension unavailable on your browser!");
     		return false;
     	}
+
+        // Reinitialization replaces GPU objects; release prior attachments first.
+        if (fbo || depthTex || textures.length) {
+            releaseAllocatedResources(gl);
+        }
 
     	//Create depth texture 
     	depthTex = gl.createTexture();
@@ -146,15 +172,7 @@
         },
         dispose: function(gl) {
             gl = gl || globalThis.gl;
-            if( !gl ){
-                return;
-            }
-            var i;
-            for(i = 0; i < textures.length; i++) {
-                gl.deleteTexture(textures[i]);
-            }
-            gl.deleteTexture(depthTex);
-            gl.deleteFramebuffer(fbo);
+            releaseAllocatedResources(gl);
         },
         bind: function(gl){
             gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );

@@ -190,6 +190,118 @@ class ChunkerAndFboCleanupTests(unittest.TestCase):
 
         self._run_node(script)
 
+    def test_fbo_reinitialize_releases_previous_gpu_allocations_before_replacing_them(self):
+        script = textwrap.dedent(
+            r"""
+            const assert = require("assert");
+            const fs = require("fs");
+            const path = require("path");
+            const vm = require("vm");
+
+            const source = fs.readFileSync(
+              path.join(process.cwd(), "Sec3Engine/js/core/fbo-util.js"),
+              "utf8"
+            );
+
+            const deletedTextures = [];
+            const deletedFramebuffers = [];
+            let textureId = 0;
+            let framebufferId = 0;
+            const gl = {
+              TEXTURE_2D: "TEXTURE_2D",
+              FRAMEBUFFER: "FRAMEBUFFER",
+              DEPTH_STENCIL_ATTACHMENT: "DEPTH_STENCIL_ATTACHMENT",
+              DEPTH_STENCIL: "DEPTH_STENCIL",
+              FLOAT: "FLOAT",
+              RGBA: "RGBA",
+              CLAMP_TO_EDGE: "CLAMP_TO_EDGE",
+              NEAREST: "NEAREST",
+              FRAMEBUFFER_COMPLETE: "FRAMEBUFFER_COMPLETE",
+              getExtension(name) {
+                if (name === "WEBGL_draw_buffers") {
+                  return {
+                    COLOR_ATTACHMENT0_WEBGL: "ATT0",
+                    COLOR_ATTACHMENT1_WEBGL: "ATT1",
+                    COLOR_ATTACHMENT2_WEBGL: "ATT2",
+                    COLOR_ATTACHMENT3_WEBGL: "ATT3",
+                    drawBuffersWEBGL() {},
+                  };
+                }
+                if (name === "WEBGL_depth_texture") {
+                  return { UNSIGNED_INT_24_8_WEBGL: "UNSIGNED_INT_24_8_WEBGL" };
+                }
+                return {};
+              },
+              createTexture() {
+                return { kind: "texture", id: textureId++ };
+              },
+              bindTexture() {},
+              texParameteri() {},
+              texImage2D() {},
+              createFramebuffer() {
+                return { kind: "fbo", id: framebufferId++ };
+              },
+              bindFramebuffer() {},
+              framebufferTexture2D() {},
+              checkFramebufferStatus() {
+                return "FRAMEBUFFER_COMPLETE";
+              },
+              deleteTexture(texture) {
+                deletedTextures.push(texture);
+              },
+              deleteFramebuffer(framebuffer) {
+                deletedFramebuffers.push(framebuffer);
+              },
+            };
+
+            const sandbox = {
+              Math,
+              Float32Array,
+              console,
+              gl,
+              alert(message) {
+                throw new Error("Unexpected alert: " + message);
+              },
+              SEC3: {},
+            };
+
+            vm.createContext(sandbox);
+            vm.runInContext(source, sandbox, { filename: "fbo-util.js" });
+
+            const fbo = sandbox.SEC3.createFBO();
+            assert.ok(fbo.initialize(gl, 4, 4, 2));
+            const firstColor0 = fbo.texture(0);
+            const firstColor1 = fbo.texture(1);
+            const firstDepth = fbo.depthTexture();
+            const firstFramebuffer = fbo.ref();
+
+            assert.ok(fbo.initialize(gl, 8, 8, 2));
+
+            assert.strictEqual(
+              deletedTextures.length,
+              3,
+              "Reinitializing an FBO should delete exactly the old two color textures and one depth texture"
+            );
+            assert.ok(
+              deletedTextures.includes(firstColor0) &&
+              deletedTextures.includes(firstColor1) &&
+              deletedTextures.includes(firstDepth),
+              "Reinitializing an FBO should release each previous texture attachment regardless of deletion order"
+            );
+            assert.strictEqual(
+              deletedFramebuffers.length,
+              1,
+              "Reinitializing an FBO should delete exactly one previous framebuffer object"
+            );
+            assert.ok(
+              deletedFramebuffers.includes(firstFramebuffer),
+              "Reinitializing an FBO should release the previous framebuffer regardless of deletion order"
+            );
+            """
+        )
+
+        self._run_node(script)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
