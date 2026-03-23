@@ -17,6 +17,7 @@ SEC3.createOBJLoader = function( s ){
     var indexGroup = [];
 
     var scene = s;
+    var glContext = null;
 
     var textures = [];
 
@@ -54,6 +55,7 @@ SEC3.createOBJLoader = function( s ){
 
 
     function load( gl, filename, mtl ){
+        glContext = gl;
     	var loader;
 
         var eventlistener = function(object){
@@ -198,11 +200,21 @@ SEC3.createOBJLoader = function( s ){
         	var isReady = ready;
             for( var i = 0; i < textures.length; ++i ){
                 if( textures[i] !== null && !textures[i].ready ){
+                    if (!glContext) {
+                        isReady = false;
+                        continue;
+                    }
+                    var map = textures[i].map;
+                    var image = map && map.image;
+                    var src = image && image.src;
 
-                    if( textures[i].map.image.src.length > 0){
-                        // console.log( textures[i].map.image.src );
-                        loadTexture( gl, textures[i] );
+                    if( src && src.length > 0){
+                        // console.log( src );
+                        loadTexture( glContext, textures[i] );
                         isReady &= textures[i].ready;
+                    }
+                    else{
+                        isReady = false;
                     }
                 }
                 
