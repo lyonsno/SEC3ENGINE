@@ -128,19 +128,19 @@ var demo = (function () {
     demo.AMBIENT_INTENSITY = 0.03;
 
     demo.texToDisplay = 2;
-    demo.secondPass;
+    demo.secondPass = "dofProg";
 
-    demo.nearSlope = -6.6;
-    demo.nearIntercept = 1.39;
+    demo.nearSlope = -9.0;
+    demo.nearIntercept = 2.1;
 
-    demo.farSlope = 1.4;
-    demo.farIntercept = -0.28;
+    demo.farSlope = 2.2;
+    demo.farIntercept = -0.35;
 
     demo.blurSigma = 2.0;
 
-    demo.SMALL_BLUR = 1.8;
-    demo.MEDIUM_BLUR = 3.4;
-    demo.LARGE_BLUR = 11.6;
+    demo.SMALL_BLUR = 2.8;
+    demo.MEDIUM_BLUR = 6.2;
+    demo.LARGE_BLUR = 15.5;
 
     demo.SHADOWMAP_SIZE = 1024.0;
     demo.FAR_CASCADE_SIZE = 256;
@@ -280,7 +280,6 @@ var myRenderLoop = function() {
         initLightUi();
         initBlurButtons();
         initDofButtons();
-        demo.secondPass = "bufferRenderProg";
         
         SEC3.setup = true;
     }
@@ -370,26 +369,126 @@ var loadObjects = function() {
 };
 
 var setKeyInputs = function() {
+    var passModeFromSliderValue = function(value) {
+        switch (value) {
+          case 1: return "blurProg";
+          case 2: return "bufferRenderProg";
+          case 3: return "dofProg";
+          case 4: return "buildShadowMapProg";
+          default: return null;
+        }
+    };
+
+    var passModeFromEvent = function(ev) {
+        var keyCode = ev && (ev.keyCode || ev.which);
+        if (keyCode === 53 || keyCode === 54 || keyCode === 55 || keyCode === 56) {
+            return passModeFromSliderValue(keyCode - 52);
+        }
+
+        var key = ev && ev.key;
+        if (key === "5" || key === "6" || key === "7" || key === "8") {
+            return passModeFromSliderValue(parseInt(key, 10) - 4);
+        }
+
+        var code = ev && ev.code;
+        switch (code) {
+          case "Digit5":
+          case "Numpad5":
+            return "blurProg";
+          case "Digit6":
+          case "Numpad6":
+            return "bufferRenderProg";
+          case "Digit7":
+          case "Numpad7":
+            return "dofProg";
+          case "Digit8":
+          case "Numpad8":
+            return "buildShadowMapProg";
+          default:
+            return null;
+        }
+    };
     
     window.onkeydown = function(ev) {
 
         interactor.onKeyDown(ev);
-        switch( ev.keyCode ){
-          case 49: demo.texToDisplay = 0; break;     //show position texture
-          case 50: demo.texToDisplay = 1; break;     //show normal texture
-          case 51: demo.texToDisplay = 2; break;     //show texture texture
-          case 52: demo.texToDisplay = 3; break;     //show depth texture
+        var keyCode = ev && (ev.keyCode || ev.which);
+        switch( keyCode ){
+          case 49: demo.texToDisplay = 0; return;    //show position texture
+          case 50: demo.texToDisplay = 1; return;    //show normal texture
+          case 51: demo.texToDisplay = 2; return;    //show texture texture
+          case 52: demo.texToDisplay = 3; return;    //show depth texture
+        }
 
-          case 53: demo.secondPass = "blurProg"; break;
-          case 54: demo.secondPass = "bufferRenderProg"; break;
-          case 55: demo.secondPass = "dofProg"; break;
-          case 56: 
-            demo.secondPass = "buildShadowMapProg"; 
-            demo.cascadeToDisplay = Math.floor(( demo.cascadeToDisplay + 1 ) % (scene.getLight(demo.selectedLight).numCascades));
-            break;
+        var selectedPass = passModeFromEvent(ev);
+        if (selectedPass) {
+            demo.secondPass = selectedPass;
+            if (selectedPass === "buildShadowMapProg") {
+                var selectedLight = scene.getLight(demo.selectedLight);
+                var cascadeCount = selectedLight ? selectedLight.numCascades : 1;
+                cascadeCount = Math.max(cascadeCount || 1, 1);
+                demo.cascadeToDisplay = Math.floor(( demo.cascadeToDisplay + 1 ) % cascadeCount);
+            }
+            return;
+        }
 
+        var key = ev && ev.key;
+        switch (key) {
+          case "1": demo.texToDisplay = 0; break;
+          case "2": demo.texToDisplay = 1; break;
+          case "3": demo.texToDisplay = 2; break;
+          case "4": demo.texToDisplay = 3; break;
         }
     };
+};
+
+var getRenderPassLabel = function(value) {
+    switch (value) {
+      case 1: return "1 :Render pass (Blur)";
+      case 2: return "2 :Render pass (Scene)";
+      case 3: return "3 :Render pass (DOF)";
+      case 4: return "4 :Render pass (Shadow)";
+      default: return "2 :Render pass (Scene)";
+    }
+};
+
+var getRenderPassSliderValue = function(passName) {
+    switch (passName) {
+      case "blurProg": return 1;
+      case "bufferRenderProg": return 2;
+      case "dofProg": return 3;
+      case "buildShadowMapProg": return 4;
+      default: return 2;
+    }
+};
+
+var setRenderPassFromSliderValue = function(value) {
+    if (value === 1) {
+        demo.secondPass = "blurProg";
+    }
+    else if (value === 2) {
+        demo.secondPass = "bufferRenderProg";
+    }
+    else if (value === 3) {
+        demo.secondPass = "dofProg";
+    }
+    else {
+        demo.secondPass = "buildShadowMapProg";
+        if (scene && scene.getLight) {
+            var selectedLight = scene.getLight(demo.selectedLight);
+            var cascadeCount = selectedLight ? selectedLight.numCascades : 1;
+            cascadeCount = Math.max(cascadeCount || 1, 1);
+            demo.cascadeToDisplay = Math.floor(( demo.cascadeToDisplay + 1 ) % cascadeCount);
+        }
+    }
+};
+
+var normalizeRenderPassSliderValue = function(rawValue) {
+    var parsedValue = Number(rawValue);
+    if (isNaN(parsedValue)) {
+        return getRenderPassSliderValue(demo.secondPass);
+    }
+    return Math.max(1, Math.min(4, Math.round(parsedValue)));
 };
 
 var initLightUi = function() {
@@ -455,6 +554,23 @@ var initLightUi = function() {
 function initDofButtons() {
 
     SEC3.ui = SEC3.ui || new UI("uiWrapper");
+
+    var passModeCallback = function(e) {
+        var sliderValue = normalizeRenderPassSliderValue(e.target.value);
+        e.target.value = sliderValue;
+        setRenderPassFromSliderValue(sliderValue);
+        return getRenderPassLabel(sliderValue);
+    };
+
+    var passSliderValue = getRenderPassSliderValue(demo.secondPass);
+    SEC3.ui.addSlider(
+        getRenderPassLabel(passSliderValue),
+        passModeCallback,
+        passSliderValue,
+        1,
+        4,
+        1
+    );
 
     var slopeCallback = function(e) {
 

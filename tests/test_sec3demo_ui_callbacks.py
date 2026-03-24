@@ -365,12 +365,24 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
             vm.createContext(sandbox);
             vm.runInContext(source, sandbox, { filename: "SEC3DEMO.js" });
 
+            assert.strictEqual(
+              sandbox.demo.secondPass,
+              "dofProg",
+              "SEC3 demo should default to the DOF second-pass mode so depth-of-field is visible on first load"
+            );
+
             sandbox.initDofButtons();
 
             const slopeSlider = sliderEntries.find((entry) => String(entry[0]).includes(":Near slope"));
             const interceptSlider = sliderEntries.find((entry) => String(entry[0]).includes(":Near intercept"));
+            const passModeSlider = sliderEntries.find((entry) => String(entry[0]).includes(":Render pass"));
             assert.ok(slopeSlider, "initDofButtons should register the near-slope slider");
             assert.ok(interceptSlider, "initDofButtons should register the near-intercept slider");
+            assert.ok(passModeSlider, "initDofButtons should register a render-pass mode slider so DOF can be selected from UI");
+            assert.ok(
+              String(passModeSlider[0]).includes("DOF"),
+              "The render-pass slider should initialize in DOF mode to match the startup second-pass default"
+            );
 
             glCalls.length = 0;
             const slopeLabel = slopeSlider[1]({ target: { value: -5 } });
@@ -378,7 +390,7 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
               glCalls,
               [
                 ["useProgram", "dof-program"],
-                ["uniform2fv", "uDofEq", [-5, 1.39]],
+                ["uniform2fv", "uDofEq", [-5, 2.1]],
               ],
               "The near-slope slider should update SEC3.postFx.dofDownsampleProg with the new DOF equation"
             );
@@ -395,6 +407,18 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
               "The near-intercept slider should reuse SEC3.postFx.dofDownsampleProg and preserve the updated slope"
             );
             assert.strictEqual(interceptLabel, "1.5 :Near intercept");
+
+            sandbox.demo.secondPass = "bufferRenderProg";
+            const passModeLabel = passModeSlider[1]({ target: { value: 3 } });
+            assert.strictEqual(
+              sandbox.demo.secondPass,
+              "dofProg",
+              "Selecting render-pass mode 3 from the DOF UI should switch the demo into dofProg without keyboard input"
+            );
+            assert.ok(
+              String(passModeLabel).includes("DOF"),
+              "The render-pass slider label should expose that mode 3 maps to DOF"
+            );
             """
         )
 
@@ -509,7 +533,7 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
                 ["uniform2fv", "u_pixDim", [1 / 800, 1 / 600]],
                 ["uniform1f", "u_near", 0.6],
                 ["uniform1f", "u_far", 30],
-                ["uniform2fv", "u_dofEq", [-6.6, 1.39]],
+                ["uniform2fv", "u_dofEq", [-9, 2.1]],
               ],
               "postFx.init should seed the DOF shader with the SEC3 demo defaults during async boot"
             );
@@ -633,6 +657,13 @@ class Sec3DemoUiCallbackTests(unittest.TestCase):
               sandbox.demo.secondPass,
               "dofProg",
               "Key 7 should switch the SEC3 demo second-pass mode into DOF"
+            );
+            sandbox.demo.secondPass = "bufferRenderProg";
+            sandbox.window.onkeydown({ key: "7", code: "Digit7" });
+            assert.strictEqual(
+              sandbox.demo.secondPass,
+              "dofProg",
+              "Modern keyboard events should be able to switch the second pass into DOF without relying on deprecated keyCode"
             );
 
             calls.length = 0;
