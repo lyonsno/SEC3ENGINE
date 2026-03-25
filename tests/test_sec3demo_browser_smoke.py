@@ -357,6 +357,702 @@ class Sec3DemoBrowserSmokeTests(unittest.TestCase):
             ),
         )
 
+    def test_index_scene_textures_become_ready_in_browser_runtime(self):
+        harness_source = """<!doctype html>
+<html>
+  <body>
+    <iframe id="demo" src="/index.html" style="width:1280px;height:900px;border:0;"></iframe>
+    <pre id="status">BOOTING</pre>
+    <script>
+      (function() {
+        var statusNode = document.getElementById("status");
+        var frame = document.getElementById("demo");
+
+        function setStatus(text) {
+          statusNode.textContent = text;
+        }
+
+        window.onerror = function(message) {
+          setStatus("HARNESS_ERROR:" + message);
+        };
+
+        function installTextureProbe() {
+          var win = frame.contentWindow;
+          if (!win || !win.SEC3 || !win.demo || !Array.isArray(win.model_texcoordVBOs)) {
+            return false;
+          }
+          if (win.__textureHarnessInstalled) {
+            return true;
+          }
+
+          win.__textureHarnessInstalled = true;
+          var attempts = 0;
+          var timer = setInterval(function() {
+            attempts += 1;
+            if (win.SEC3 && win.SEC3.setup && Array.isArray(win.model_texcoordVBOs)) {
+              var texturedMeshes = 0;
+              var readyTextures = 0;
+              var pendingTextures = 0;
+
+              for (var i = 0; i < win.model_texcoordVBOs.length; i += 1) {
+                var vbo = win.model_texcoordVBOs[i];
+                if (vbo && vbo.texture) {
+                  texturedMeshes += 1;
+                  if (vbo.texture.ready === true) {
+                    readyTextures += 1;
+                  }
+                  else {
+                    pendingTextures += 1;
+                  }
+                }
+              }
+
+              if (texturedMeshes > 0 && readyTextures === texturedMeshes) {
+                clearInterval(timer);
+                setStatus(
+                  "TEXTURED_MESHES=" + texturedMeshes +
+                  ";READY_TEXTURES=" + readyTextures +
+                  ";PENDING_TEXTURES=" + pendingTextures
+                );
+                return;
+              }
+
+              if (attempts > 360) {
+                clearInterval(timer);
+                setStatus(
+                  "TEXTURED_MESHES=" + texturedMeshes +
+                  ";READY_TEXTURES=" + readyTextures +
+                  ";PENDING_TEXTURES=" + pendingTextures
+                );
+              }
+              return;
+            }
+
+            if (attempts > 360) {
+              clearInterval(timer);
+              setStatus("HARNESS_TIMEOUT");
+            }
+          }, 25);
+
+          return true;
+        }
+
+        frame.addEventListener("load", function() {
+          var attempts = 0;
+          var intervalId = setInterval(function() {
+            attempts += 1;
+            if (installTextureProbe()) {
+              clearInterval(intervalId);
+              return;
+            }
+            if (attempts > 320) {
+              clearInterval(intervalId);
+              setStatus("HARNESS_TIMEOUT");
+            }
+          }, 25);
+        });
+      })();
+    </script>
+  </body>
+</html>
+"""
+        harness_path = write_sec3demo_harness_file(REPO_ROOT, harness_source)
+        try:
+            with LocalHTTPServer(REPO_ROOT) as base_url:
+                completed = subprocess.run(
+                    [
+                        str(find_chrome_binary()),
+                        "--headless=new",
+                        "--disable-gpu",
+                        "--enable-logging=stderr",
+                        "--enable-webgl",
+                        "--ignore-gpu-blocklist",
+                        "--use-gl=angle",
+                        "--use-angle=swiftshader",
+                        "--enable-unsafe-swiftshader",
+                        "--virtual-time-budget=9000",
+                        "--dump-dom",
+                        f"{base_url}/{harness_path.name}",
+                    ],
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    timeout=40,
+                )
+        finally:
+            harness_path.unlink(missing_ok=True)
+
+        self.assertEqual(
+            completed.returncode,
+            0,
+            f"Headless Chrome SEC3 texture-readiness probe failed:\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
+        )
+        status_match = re.search(r'<pre id="status">([^<]+)</pre>', completed.stdout)
+        self.assertIsNotNone(
+            status_match,
+            f"SEC3 texture-readiness harness should report a status line in the dumped DOM:\n{completed.stdout}",
+        )
+        status_line = status_match.group(1)
+        self.assertNotEqual(
+            status_line,
+            "HARNESS_TIMEOUT",
+            (
+                "SEC3 texture-readiness harness timed out before the demo exposed scene texture state; "
+                f"status line was: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+        self.assertFalse(
+            status_line.startswith("HARNESS_ERROR:"),
+            f"SEC3 texture-readiness harness script reported an error: {status_line}\nDOM dump:\n{completed.stdout}",
+        )
+
+        texture_status_match = re.search(
+            r"TEXTURED_MESHES=(-?\d+);READY_TEXTURES=(-?\d+);PENDING_TEXTURES=(-?\d+)",
+            status_line,
+        )
+        self.assertIsNotNone(
+            texture_status_match,
+            (
+                "SEC3 texture-readiness harness should report how many textured meshes and ready textures the real "
+                f"browser runtime observed; status line was: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+
+        textured_meshes = int(texture_status_match.group(1))
+        ready_textures = int(texture_status_match.group(2))
+        pending_textures = int(texture_status_match.group(3))
+        self.assertGreater(
+            textured_meshes,
+            0,
+            (
+                "The SEC3 index demo should attach at least one texture-backed mesh once the Sponza scene loads; "
+                f"observed status: {status_line}"
+            ),
+        )
+        self.assertGreater(
+            ready_textures,
+            0,
+            (
+                "The SEC3 index demo should finish uploading at least one scene texture in the browser runtime; "
+                f"observed status: {status_line}"
+            ),
+        )
+        self.assertEqual(
+            ready_textures,
+            textured_meshes,
+            (
+                "Once the SEC3 index demo reports textured meshes, all of those mesh textures should finish uploading "
+                f"before the browser smoke probe settles; observed status: {status_line}"
+            ),
+        )
+        self.assertEqual(
+            pending_textures,
+            0,
+            (
+                "The SEC3 index demo should not leave any scene textures pending by the time the browser readiness probe "
+                f"settles; observed status: {status_line}"
+            ),
+        )
+
+    def test_index_fetches_scene_texture_assets_and_renders_textured_detail(self):
+        harness_source = """<!doctype html>
+<html>
+  <body>
+    <iframe id="demo" src="/index.html" style="width:1280px;height:900px;border:0;"></iframe>
+    <pre id="status">BOOTING</pre>
+    <script>
+      (function() {
+        var statusNode = document.getElementById("status");
+        var frame = document.getElementById("demo");
+
+        function setStatus(text) {
+          statusNode.textContent = text;
+        }
+
+        window.onerror = function(message) {
+          setStatus("HARNESS_ERROR:" + message);
+        };
+
+        function captureRegion(gl, x, y, width, height) {
+          var pixels = new Uint8Array(width * height * 4);
+          gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          return pixels;
+        }
+
+        function countTexturedPixels(pixels) {
+          if (!pixels || pixels.length === 0) {
+            return 0;
+          }
+          var detailed = 0;
+          for (var i = 0; i < pixels.length; i += 4) {
+            var channelSpread = Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) - Math.min(pixels[i], pixels[i + 1], pixels[i + 2]);
+            var luminance = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+            if (luminance > 18 && channelSpread > 8) {
+              detailed += 1;
+            }
+          }
+          return detailed;
+        }
+
+        function installTextureDetailProbe() {
+          var win = frame.contentWindow;
+          if (!win || !win.SEC3 || !win.demo || typeof win.myRender !== "function") {
+            return false;
+          }
+          if (win.__textureDetailHarnessInstalled) {
+            return true;
+          }
+
+          win.__textureDetailHarnessInstalled = true;
+          var attempts = 0;
+          var timer = setInterval(function() {
+            attempts += 1;
+            if (win.SEC3 && win.SEC3.setup && win.gl && win.SEC3.canvas && Array.isArray(win.model_texcoordVBOs)) {
+              var texturedMeshes = 0;
+              var readyTextures = 0;
+              for (var i = 0; i < win.model_texcoordVBOs.length; i += 1) {
+                var vbo = win.model_texcoordVBOs[i];
+                if (vbo && vbo.texture) {
+                  texturedMeshes += 1;
+                  if (vbo.texture.ready === true) {
+                    readyTextures += 1;
+                  }
+                }
+              }
+
+              if (texturedMeshes > 0 && readyTextures === texturedMeshes) {
+                if (win.particleSystem && typeof win.particleSystem.stepParticles === "function") {
+                  win.particleSystem.stepParticles = function() {};
+                }
+                if (typeof win.moveLight === "function") {
+                  win.moveLight = function() {};
+                }
+              win.demo.secondPass = "bufferRenderProg";
+              win.myRender();
+
+              var canvas = win.SEC3.canvas;
+                var sampleWidth = Math.max(8, Math.floor(canvas.width * 0.36));
+                var sampleHeight = Math.max(8, Math.floor(canvas.height * 0.32));
+                var sampleX = Math.floor(canvas.width * 0.32);
+                var sampleY = Math.floor(canvas.height * 0.36);
+                var pixels = captureRegion(win.gl, sampleX, sampleY, sampleWidth, sampleHeight);
+                var texturedPixels = countTexturedPixels(pixels);
+
+                clearInterval(timer);
+                setStatus(
+                  "TEXTURED_MESHES=" + texturedMeshes +
+                  ";READY_TEXTURES=" + readyTextures +
+                  ";TEXTURED_PIXELS=" + texturedPixels +
+                  ";SAMPLE_PIXELS=" + (sampleWidth * sampleHeight)
+                );
+                return;
+              }
+            }
+
+            if (attempts > 360) {
+              clearInterval(timer);
+              setStatus("HARNESS_TIMEOUT");
+            }
+          }, 25);
+
+          return true;
+        }
+
+        frame.addEventListener("load", function() {
+          var attempts = 0;
+          var intervalId = setInterval(function() {
+            attempts += 1;
+            if (installTextureDetailProbe()) {
+              clearInterval(intervalId);
+              return;
+            }
+            if (attempts > 320) {
+              clearInterval(intervalId);
+              setStatus("HARNESS_TIMEOUT");
+            }
+          }, 25);
+        });
+      })();
+    </script>
+  </body>
+</html>
+"""
+        harness_path = write_sec3demo_harness_file(REPO_ROOT, harness_source)
+        try:
+            with LocalHTTPServer(REPO_ROOT) as base_url:
+                completed = subprocess.run(
+                    [
+                        str(find_chrome_binary()),
+                        "--headless=new",
+                        "--disable-gpu",
+                        "--enable-logging=stderr",
+                        "--enable-webgl",
+                        "--ignore-gpu-blocklist",
+                        "--use-gl=angle",
+                        "--use-angle=swiftshader",
+                        "--enable-unsafe-swiftshader",
+                        "--virtual-time-budget=9000",
+                        "--dump-dom",
+                        f"{base_url}/{harness_path.name}",
+                    ],
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    timeout=25,
+                )
+        finally:
+            harness_path.unlink(missing_ok=True)
+
+        self.assertEqual(
+            completed.returncode,
+            0,
+            f"Headless Chrome SEC3 texture-detail probe failed:\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
+        )
+        status_match = re.search(r'<pre id="status">([^<]+)</pre>', completed.stdout)
+        self.assertIsNotNone(
+            status_match,
+            f"SEC3 texture-detail harness should report a status line in the dumped DOM:\n{completed.stdout}",
+        )
+        status_line = status_match.group(1)
+        self.assertNotEqual(
+            status_line,
+            "HARNESS_TIMEOUT",
+            (
+                "SEC3 texture-detail harness timed out before the demo settled into a fully textured render; "
+                f"status line was: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+        self.assertFalse(
+            status_line.startswith("HARNESS_ERROR:"),
+            f"SEC3 texture-detail harness script reported an error: {status_line}\nDOM dump:\n{completed.stdout}",
+        )
+
+        status_fields = re.search(
+            r"TEXTURED_MESHES=(-?\d+);READY_TEXTURES=(-?\d+);TEXTURED_PIXELS=(-?\d+);SAMPLE_PIXELS=(-?\d+)",
+            status_line,
+        )
+        self.assertIsNotNone(
+            status_fields,
+            (
+                "SEC3 texture-detail harness should report texture readiness and sampled scene detail; "
+                f"observed status: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+
+        textured_meshes = int(status_fields.group(1))
+        ready_textures = int(status_fields.group(2))
+        textured_pixels = int(status_fields.group(3))
+        sample_pixels = int(status_fields.group(4))
+
+        self.assertGreater(
+            textured_meshes,
+            0,
+            f"The SEC3 index demo should expose textured meshes in the browser runtime; observed status: {status_line}",
+        )
+        self.assertEqual(
+            ready_textures,
+            textured_meshes,
+            f"All textured SEC3 meshes should have ready textures before detail sampling; observed status: {status_line}",
+        )
+        self.assertGreater(
+            sample_pixels,
+            0,
+            "The SEC3 texture-detail browser probe should sample a valid scene region",
+        )
+        self.assertGreater(
+            textured_pixels,
+            2000,
+            (
+                "Once scene textures are fetched and ready, the sampled index-demo render region should contain enough "
+                f"color/detail variation to plausibly reflect textured surfaces; observed status: {status_line}"
+            ),
+        )
+
+    def test_index_near_dof_controls_change_foreground_pixels_in_close_camera_view(self):
+        harness_source = """<!doctype html>
+<html>
+  <body>
+    <iframe id="demo" src="/index.html" style="width:1280px;height:900px;border:0;"></iframe>
+    <pre id="status">BOOTING</pre>
+    <script>
+      (function() {
+        var statusNode = document.getElementById("status");
+        var frame = document.getElementById("demo");
+
+        function setStatus(text) {
+          statusNode.textContent = text;
+        }
+
+        window.onerror = function(message) {
+          setStatus("HARNESS_ERROR:" + message);
+        };
+
+        function captureRegion(gl, x, y, width, height) {
+          var pixels = new Uint8Array(width * height * 4);
+          gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          return pixels;
+        }
+
+        function countPixelDelta(lhs, rhs) {
+          if (!lhs || !rhs || lhs.length !== rhs.length) {
+            return -1;
+          }
+          var changed = 0;
+          for (var i = 0; i < lhs.length; i += 4) {
+            var delta =
+              Math.abs(lhs[i] - rhs[i]) +
+              Math.abs(lhs[i + 1] - rhs[i + 1]) +
+              Math.abs(lhs[i + 2] - rhs[i + 2]);
+            if (delta >= 12) {
+              changed += 1;
+            }
+          }
+          return changed;
+        }
+
+        function findSliderByLabelSuffix(win, suffix) {
+          var container = win.document && win.document.getElementById("uiWrapper");
+          if (!container) {
+            return null;
+          }
+          var labels = container.getElementsByTagName("label");
+          for (var i = 0; i < labels.length; i += 1) {
+            var label = labels[i];
+            if (label && typeof label.innerText === "string" && label.innerText.indexOf(suffix) !== -1) {
+              return label.previousSibling;
+            }
+          }
+          return null;
+        }
+
+        function installNearDofProbe() {
+          var win = frame.contentWindow;
+          if (!win || !win.SEC3 || !win.SEC3.postFx || !win.demo || !win.camera || typeof win.myRender !== "function") {
+            return false;
+          }
+          if (win.__nearDofHarnessInstalled) {
+            return true;
+          }
+
+          win.__nearDofHarnessInstalled = true;
+          var attempts = 0;
+          var timer = setInterval(function() {
+            attempts += 1;
+            if (win.SEC3 && win.SEC3.setup && win.gl && win.SEC3.canvas) {
+              clearInterval(timer);
+
+              if (win.particleSystem && typeof win.particleSystem.stepParticles === "function") {
+                win.particleSystem.stepParticles = function() {};
+              }
+              if (typeof win.moveLight === "function") {
+                win.moveLight = function() {};
+              }
+
+              if (win.camera.goHome) {
+                win.camera.goHome([-0.5, 2.0, 1.0]);
+              }
+              if (win.camera.setAzimuth) {
+                win.camera.setAzimuth(88.0);
+              }
+              if (win.camera.setElevation) {
+                win.camera.setElevation(-5.0);
+              }
+
+              var gl = win.gl;
+              var canvas = win.SEC3.canvas;
+              var foregroundWidth = Math.max(8, Math.floor(canvas.width * 0.22));
+              var foregroundHeight = Math.max(8, Math.floor(canvas.height * 0.28));
+              var foregroundX = Math.floor(canvas.width * 0.40);
+              var foregroundY = Math.floor(canvas.height * 0.35);
+              var backgroundX = Math.floor(canvas.width * 0.68);
+              var backgroundY = Math.floor(canvas.height * 0.45);
+              var beforeSlope = win.demo.nearSlope;
+              var beforeIntercept = win.demo.nearIntercept;
+
+              var slopeSlider = findSliderByLabelSuffix(win, ":Near slope");
+              var interceptSlider = findSliderByLabelSuffix(win, ":Near intercept");
+              if (!slopeSlider || !interceptSlider) {
+                setStatus("HARNESS_ERROR:missing-near-dof-sliders");
+                return;
+              }
+              slopeSlider.value = -10.0;
+              slopeSlider.dispatchEvent(new win.Event("input", { bubbles: true }));
+              interceptSlider.value = 3.0;
+              interceptSlider.dispatchEvent(new win.Event("input", { bubbles: true }));
+              var afterSlope = win.demo.nearSlope;
+              var afterIntercept = win.demo.nearIntercept;
+
+              // Isolate near-DOF so the probe measures the close-focus path rather than far blur.
+              win.demo.farSlope = 0.0;
+              win.demo.farIntercept = 0.0;
+
+              win.demo.secondPass = "bufferRenderProg";
+              win.myRender();
+              var beforeForeground = captureRegion(gl, foregroundX, foregroundY, foregroundWidth, foregroundHeight);
+              var beforeBackground = captureRegion(gl, backgroundX, backgroundY, foregroundWidth, foregroundHeight);
+
+              win.demo.secondPass = "dofProg";
+              win.myRender();
+              var afterForeground = captureRegion(gl, foregroundX, foregroundY, foregroundWidth, foregroundHeight);
+              var afterBackground = captureRegion(gl, backgroundX, backgroundY, foregroundWidth, foregroundHeight);
+              var foregroundDelta = countPixelDelta(beforeForeground, afterForeground);
+              var backgroundDelta = countPixelDelta(beforeBackground, afterBackground);
+
+              setStatus(
+                "BEFORE_NEAR_SLOPE=" + beforeSlope +
+                ";AFTER_NEAR_SLOPE=" + afterSlope +
+                ";BEFORE_NEAR_INTERCEPT=" + beforeIntercept +
+                ";AFTER_NEAR_INTERCEPT=" + afterIntercept +
+                ";" +
+                "FOREGROUND_DELTA=" + foregroundDelta +
+                ";BACKGROUND_DELTA=" + backgroundDelta +
+                ";SAMPLE_PIXELS=" + (foregroundWidth * foregroundHeight)
+              );
+              return;
+            }
+            if (attempts > 320) {
+              clearInterval(timer);
+              setStatus("MODE_SWITCH_TIMEOUT");
+            }
+          }, 25);
+
+          return true;
+        }
+
+        frame.addEventListener("load", function() {
+          var attempts = 0;
+          var intervalId = setInterval(function() {
+            attempts += 1;
+            if (installNearDofProbe()) {
+              clearInterval(intervalId);
+              return;
+            }
+            if (attempts > 320) {
+              clearInterval(intervalId);
+              setStatus("HARNESS_TIMEOUT");
+            }
+          }, 25);
+        });
+      })();
+    </script>
+  </body>
+</html>
+"""
+        harness_path = write_sec3demo_harness_file(REPO_ROOT, harness_source)
+        try:
+            with LocalHTTPServer(REPO_ROOT) as base_url:
+                completed = subprocess.run(
+                    [
+                        str(find_chrome_binary()),
+                        "--headless=new",
+                        "--disable-gpu",
+                        "--enable-logging=stderr",
+                        "--enable-webgl",
+                        "--ignore-gpu-blocklist",
+                        "--use-gl=angle",
+                        "--use-angle=swiftshader",
+                        "--enable-unsafe-swiftshader",
+                        "--virtual-time-budget=9000",
+                        "--dump-dom",
+                        f"{base_url}/{harness_path.name}",
+                    ],
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    timeout=25,
+                )
+        finally:
+            harness_path.unlink(missing_ok=True)
+
+        self.assertEqual(
+            completed.returncode,
+            0,
+            f"Headless Chrome SEC3 near-DOF probe failed:\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
+        )
+        status_match = re.search(r'<pre id="status">([^<]+)</pre>', completed.stdout)
+        self.assertIsNotNone(
+            status_match,
+            f"SEC3 near-DOF harness should report a status line in the dumped DOM:\n{completed.stdout}",
+        )
+        status_line = status_match.group(1)
+        self.assertNotEqual(
+            status_line,
+            "HARNESS_TIMEOUT",
+            (
+                "SEC3 near-DOF harness timed out before the demo exposed post-processing callbacks; "
+                f"status line was: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+        self.assertNotEqual(
+            status_line,
+            "MODE_SWITCH_TIMEOUT",
+            (
+                "SEC3 near-DOF harness timed out while waiting for SEC3.setup/GL state; "
+                f"status line was: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+        self.assertFalse(
+            status_line.startswith("HARNESS_ERROR:"),
+            f"SEC3 near-DOF harness script reported an error: {status_line}\nDOM dump:\n{completed.stdout}",
+        )
+
+        near_status_match = re.search(
+            r"BEFORE_NEAR_SLOPE=([^;]+);AFTER_NEAR_SLOPE=([^;]+);BEFORE_NEAR_INTERCEPT=([^;]+);AFTER_NEAR_INTERCEPT=([^;]+);FOREGROUND_DELTA=(-?\d+);BACKGROUND_DELTA=(-?\d+);SAMPLE_PIXELS=(-?\d+)",
+            status_line,
+        )
+        self.assertIsNotNone(
+            near_status_match,
+            (
+                "SEC3 near-DOF harness should report foreground and background deltas after configuring a close-focus "
+                f"preset through the near-focus controls; observed status: {status_line}\nDOM dump was:\n{completed.stdout}"
+            ),
+        )
+
+        before_slope = float(near_status_match.group(1))
+        after_slope = float(near_status_match.group(2))
+        before_intercept = float(near_status_match.group(3))
+        after_intercept = float(near_status_match.group(4))
+        foreground_delta = int(near_status_match.group(5))
+        background_delta = int(near_status_match.group(6))
+        sample_pixels = int(near_status_match.group(7))
+        self.assertNotEqual(
+            before_slope,
+            after_slope,
+            (
+                "The near-slope slider callback should update demo.nearSlope in the live browser runtime before the "
+                f"near-DOF probe samples pixels; observed status: {status_line}"
+            ),
+        )
+        self.assertNotEqual(
+            before_intercept,
+            after_intercept,
+            (
+                "The near-intercept slider callback should update demo.nearIntercept in the live browser runtime "
+                f"before the near-DOF probe samples pixels; observed status: {status_line}"
+            ),
+        )
+        self.assertGreater(
+            sample_pixels,
+            0,
+            "SEC3 near-DOF browser probe should sample a valid foreground region for frame-delta checks",
+        )
+        self.assertGreater(
+            foreground_delta,
+            20,
+            (
+                "Configuring a strong near-focus preset in a close camera view should make the DOF pass visibly change "
+                f"at least part of the foreground sample relative to the buffer-render pass; observed status: {status_line}"
+            ),
+        )
+        self.assertGreater(
+            foreground_delta,
+            background_delta,
+            (
+                "Near-DOF tuning should affect the foreground-focused sample more than the background sample; "
+                f"observed status: {status_line}"
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
